@@ -1,12 +1,12 @@
 from django.contrib import admin
-from .models import rol, usuario, unidadmedicion, ingrediente, receta, receta_ingrediente, comprobante, historial
+from .models import Rol, Usuario, UnidadMedicion, Ingrediente, Receta, Receta_Ingrediente, Comprobante, Historial
 
 # Register your models here.
-admin.site.register(rol)
-admin.site.register(usuario)
-admin.site.register(unidadmedicion)
-admin.site.register(ingrediente)
-admin.site.register(receta)
-admin.site.register(receta_ingrediente)
-admin.site.register(comprobante)
-admin.site.register(historial)
+admin.site.register(Rol)
+admin.site.register(Usuario)
+admin.site.register(UnidadMedicion)
+admin.site.register(Ingrediente)
+admin.site.register(Receta)
+admin.site.register(Receta_Ingrediente)
+admin.site.register(Comprobante)
+admin.site.register(Historial)
