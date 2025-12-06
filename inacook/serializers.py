@@ -1,32 +1,47 @@
 from rest_framework import serializers
-from inacook.models import rol, usuario, unidadmedicion, ingrediente, receta_ingrediente
+from inacook.models import Rol, Usuario, UnidadMedicion, Ingrediente, Receta_Ingrediente, Receta, Historial, Comprobante
 
 
 class RolSerializer(serializers.ModelSerializer):
     class Meta:
-        model = rol
+        model = Rol
         fields = '__all__'
 
 
 class UsuarioSerializer(serializers.ModelSerializer):
     class Meta:
-        model = usuario
+        model = Usuario
         fields = '__all__'
 
 
-class UnidadmedicionSerializer(serializers.ModelSerializer):
+class UnidadMedicionSerializer(serializers.ModelSerializer):
     class Meta:
-        model = unidadmedicion
+        model = UnidadMedicion
         fields = '__all__'
 
 
 class IngredienteSerializer(serializers.ModelSerializer):
     class Meta:
-        model = ingrediente
+        model = Ingrediente
         fields = '__all__'
 
 
 class RecetaIngredienteSerializer(serializers.ModelSerializer):
     class Meta:
-        model = receta_ingrediente
+        model = Receta_Ingrediente
+        fields = '__all__'
+
+class RecetaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Receta
+        fields = '__all__'
+
+class ComprobanteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comprobante
+        fields = '__all__'
+
+class HistorialSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Historial
         fields = '__all__'
