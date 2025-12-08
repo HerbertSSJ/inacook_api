@@ -5,6 +5,10 @@ from inacook.views import (
     DetalleIngrediente, 
     ListaReceta, 
     DetalleReceta,
+    ListaRoles,
+    DetalleRol,
+    ListaUnidadMedicion,
+    DetalleUnidadMedicion,  
 )
 
 urlpatterns = [
@@ -14,4 +18,8 @@ urlpatterns = [
     path('ingredientes/<int:id>/', DetalleIngrediente.as_view()),
     path('recetas/', ListaReceta.as_view()),
     path('recetas/<int:id>/', DetalleReceta.as_view()),
+    path('roles/', ListaRoles.as_view()),
+    path('roles/<int:id>/', DetalleRol.as_view()),
+    path('unidades/', ListaUnidadMedicion.as_view()),
+    path('unidades/<int:id>/', DetalleUnidadMedicion.as_view()),    
 ]
