@@ -133,6 +133,21 @@ class DetalleReceta(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+# Lista y crea roles
+class ListaRol(APIView):
+
+    def get(self, request):
+        roles=Rol.objects.all()
+        serializer=RolSerializer(roles, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer=RolSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+
 
 class DetalleRol(APIView):
     def get_object(self, id):
@@ -312,3 +327,55 @@ class DetalleHistorial(APIView):
 
         registro.delete()
         return Response({"mensaje": "Historial eliminado"}, status=204)
+
+# Lista y crea usuarios
+class ListaUsuario(APIView):
+
+    def get(self, request):
+        usuarios=Usuario.objects.all()
+        serializer=UsuarioSerializer(usuarios, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer=UsuarioSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+
+
+# Obtener, editar o borrar un usuario
+class DetalleUsuario(APIView):
+
+    def get_object(self, id):
+        try:
+            return Usuario.objects.get(id=id)
+        except Usuario.DoesNotExist:
+            return None
+
+    def get(self, request, id):
+        usuario=self.get_object(id)
+        if not usuario:
+            return Response({"error": "Usuario no encontrado"}, status=404)
+        serializer = UsuarioSerializer(usuario)
+        return Response(serializer.data)
+
+    def put(self, request, id):
+        usuario=self.get_object(id)
+        if not usuario:
+            return Response({"error": "Usuario no encontrado"}, status=404)
+
+        serializer=UsuarioSerializer(usuario, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=400)
+
+    def delete(self, request, id):
+        usuario=self.get_object(id)
+        if not usuario:
+            return Response({"error": "Usuario no encontrado"}, status=404)
+
+        usuario.delete()
+        return Response({"mensaje": "Usuario eliminado"}, status=204)
