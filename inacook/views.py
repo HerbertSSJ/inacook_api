@@ -9,6 +9,7 @@ from .serializers import (
     ComprobanteSerializer, 
     HistorialSerializer
 )
+
 #Ingredientes (Lista y crea)
 class ListaIngredientes(APIView):
 
@@ -59,4 +60,55 @@ class DetalleIngrediente(APIView):
         ingrediente.delete()
         return Response({"mensaje": "Ingrediente eliminado"}, status=204)
 
+# recetas crear y listar
+class ListaReceta(APIView):
+
+    def get(self, request):
+        recetas = Receta.objects.all()
+        serializer = RecetaSerializer(recetas, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = RecetaSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# recetas detalle, actualizar y eliminar
+class DetalleReceta(APIView):
+
+    def get_object(self, id):
+        try:
+            return Receta.objects.get(id=id)
+        except Receta.DoesNotExist:
+            return None
+
+    def get(self, request, id):
+        receta=self.get_object(id)
+        if not receta:
+            return Response({"error": "Receta no encontrada"}, status=404)
+
+        serializer=RecetaSerializer(receta)
+        return Response(serializer.data)
+
+    def put(self, request, id):
+        receta=self.get_object(id)
+        if not receta:
+            return Response({"error": "Receta no encontrada"}, status=404)
+
+        serializer=RecetaSerializer(receta, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=400)
+
+    def delete(self, request, id):
+        receta=self.get_object(id)
+        if not receta:
+            return Response({"error": "Receta no encontrada"}, status=404)
+
+        receta.delete()
+        return Response({"mensaje": "Receta eliminada"}, status=204)
 
