@@ -19,7 +19,9 @@ from .serializers import (
     ComprobanteSerializer, 
     HistorialSerializer,
     RolSerializer,
-    UnidadMedicionSerializer
+    UnidadMedicionSerializer,
+    Receta_IngredienteSerializer,
+    UsuarioSerializer,
 )
 
 #Ingredientes (Lista y crea)
@@ -208,3 +210,55 @@ class DetalleUnidadMedicion(APIView):
             return Response({"error": "Unidad no encontrada"}, status=404)
         unidad.delete()
         return Response({"mensaje": "Unidad eliminada"}, status=204)
+
+
+class ListaComprobante(APIView):
+
+    def get(self, request):
+        comprobantes = Comprobante.objects.all()
+        serializer = ComprobanteSerializer(comprobantes, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = ComprobanteSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+
+
+class DetalleComprobante(APIView):
+
+    def get_object(self, id):
+        try:
+            return Comprobante.objects.get(id=id)
+        except Comprobante.DoesNotExist:
+            return None
+
+    def get(self, request, id):
+        comprobante = self.get_object(id)
+        if not comprobante:
+            return Response({"error": "Comprobante no encontrado"}, status=404)
+
+        serializer = ComprobanteSerializer(comprobante)
+        return Response(serializer.data)
+
+    def put(self, request, id):
+        comprobante = self.get_object(id)
+        if not comprobante:
+            return Response({"error": "Comprobante no encontrado"}, status=404)
+
+        serializer = ComprobanteSerializer(comprobante, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=400)
+
+    def delete(self, request, id):
+        comprobante = self.get_object(id)
+        if not comprobante:
+            return Response({"error": "Comprobante no encontrado"}, status=404)
+
+        comprobante.delete()
+        return Response({"mensaje": "Comprobante eliminado"}, status=204)
