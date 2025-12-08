@@ -1,5 +1,14 @@
 from rest_framework import serializers
-from inacook.models import Rol, Usuario, UnidadMedicion, Ingrediente, Receta_Ingrediente, Receta, Historial, Comprobante
+from inacook.models import (
+    Rol, 
+    Usuario, 
+    UnidadMedicion, 
+    Ingrediente, 
+    Receta_Ingrediente, 
+    Receta, 
+    Historial, 
+    Comprobante
+)
 
 
 class RolSerializer(serializers.ModelSerializer):
