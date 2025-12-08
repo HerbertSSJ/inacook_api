@@ -379,3 +379,55 @@ class DetalleUsuario(APIView):
 
         usuario.delete()
         return Response({"mensaje": "Usuario eliminado"}, status=204)
+
+# Lista y crea relaciones receta-ingrediente
+class ListaRecetaIngrediente(APIView):
+
+    def get(self, request):
+        relaciones=Receta_Ingrediente.objects.all()
+        serializer=RecetaIngredienteSerializer(relaciones, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer=RecetaIngredienteSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+
+
+# Obtener, editar o borrar una relación receta-ingrediente
+class DetalleRecetaIngrediente(APIView):
+
+    def get_object(self, id):
+        try:
+            return Receta_Ingrediente.objects.get(id=id)
+        except Receta_Ingrediente.DoesNotExist:
+            return None
+
+    def get(self, request, id):
+        relacion=self.get_object(id)
+        if not relacion:
+            return Response({"error": "Relación no encontrada"}, status=404)
+        serializer=RecetaIngredienteSerializer(relacion)
+        return Response(serializer.data)
+
+    def put(self, request, id):
+        relacion=self.get_object(id)
+        if not relacion:
+            return Response({"error": "Relación no encontrada"}, status=404)
+
+        serializer=RecetaIngredienteSerializer(relacion, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=400)
+
+    def delete(self, request, id):
+        relacion=self.get_object(id)
+        if not relacion:
+            return Response({"error": "Relación no encontrada"}, status=404)
+
+        relacion.delete()
+        return Response({"mensaje": "Relación eliminada"}, status=204)
