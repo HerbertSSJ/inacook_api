@@ -126,13 +126,6 @@ class DetalleReceta(APIView):
         receta.delete()
         return Response({"mensaje": "Receta eliminada"}, status=204)
 
-    def post(self, request):
-        serializer=RolSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 # Lista y crea roles
 class ListaRol(APIView):
 
@@ -147,7 +140,6 @@ class ListaRol(APIView):
             serializer.save()
             return Response(serializer.data, status=201)
         return Response(serializer.errors, status=400)
-
 
 class DetalleRol(APIView):
     def get_object(self, id):
