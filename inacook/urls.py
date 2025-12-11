@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import path
+from rest_framework.authtoken.views import obtain_auth_token
 from inacook.views import (
     ListaIngredientes, 
     DetalleIngrediente, 
@@ -21,7 +22,7 @@ from inacook.views import (
 
 urlpatterns=[
     path('admin/', admin.site.urls),
-
+    path('token-auth/', obtain_auth_token),
     path('ingredientes/', ListaIngredientes.as_view()),
     path('ingredientes/<int:id>/', DetalleIngrediente.as_view()),
     path('recetas/', ListaReceta.as_view()),
