@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Ingredientes - Inacook{% endblock %}
+
+{% block content %}
+<div class="container ingredientes-container">
+
+    <h1>Ingredientes Registrados</h1>
+
+    <a href="/crear_ingrediente" class="btn btn-primary"
+        style="background-color:#28a745; border-color:#28a745; margin-bottom:25px;">
+        ➕ Nuevo Ingrediente
+    </a>
+
+    <table class="tabla-ingredientes">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Calidad</th>
+                <th>Costo Unitario</th>
+                <th>Unidad</th>
+                <th style="text-align:center;">Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="tabla-ingredientes-body">
+        </tbody>
+    </table>
+
+    <p id="sin-datos" class="sin-datos" style="display:none;">
+        No hay ingredientes agregados.
+    </p>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+
+    const API = "http://127.0.0.1:8000/ingredientes/";
+
+    async function cargarIngredientes() {
+        const res = await fetch(API);
+        const ingredientes = await res.json();
+
+        const tbody = document.getElementById("tabla-ingredientes-body");
+
+        if (ingredientes.length === 0) {
+            document.getElementById("sin-datos").style.display = "block";
+            return;
+        }
+
+        tbody.innerHTML = "";
+
+        ingredientes.forEach(ing => {
+            tbody.innerHTML += `
+            <tr>
+                <td>${ing.nombre}</td>
+                <td>${ing.calidad}</td>
+                <td>$${ing.costo_unitario}</td>
+
+                <!-- Solo el ID de la unidad por ahora -->
+                <td>Unidad #${ing.unidad_medicion}</td>
+
+                <td style="text-align:center;">
+
+                    <a href="/editar_ingrediente/${ing.id}/"
+                       class="btn btn-primary"
+                       style="background-color:#007bff; border-color:#007bff;">
+                        ✏ Editar
+                    </a>
+
+                    <button onclick="eliminarIngrediente(${ing.id})"
+                        class="btn btn-danger"
+                        style="background-color:#dc3545; border-color:#dc3545;">
+                        🗑 Eliminar
+                    </button>
+
+                </td>
+            </tr>
+        `;
+        });
+    }
+
+    async function eliminarIngrediente(id) {
+        if (!confirm("¿Seguro que deseas eliminar este ingrediente?")) return;
+
+        const res = await fetch(`http://127.0.0.1:8000/ingredientes/${id}/`, {
+            method: "DELETE"
+        });
+
+        if (res.status === 204) {
+            alert("Ingrediente eliminado");
+            cargarIngredientes();
+        } else {
+            alert("Error eliminando ingrediente");
+        }
+    }
+
+    cargarIngredientes();
+
+</script>
+{% endblock %}

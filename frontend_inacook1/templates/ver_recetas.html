@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Mis Recetas - Inacook{% endblock %}
+
+{% block content %}
+<div class="container-wide">
+
+    <h1>Mis Recetas</h1>
+
+    <table class="table-wide" id="tabla-recetas">
+        <thead>
+            <tr>
+                <th>Imagen</th>
+                <th>Nombre</th>
+                <th>Categoría</th>
+                <th>Aporte (kcal)</th>
+                <th>Tiempo</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="recetas-body">
+        </tbody>
+    </table>
+
+    <p id="mensaje-vacio" style="text-align:center; display:none;">Aún no has subido recetas.</p>
+
+</div>
+
+<script>
+    async function cargarRecetas() {
+        try {
+            const respuesta = await fetch("http://127.0.0.1:8000/api/recetas/");
+            const recetas = await respuesta.json();
+
+            const cuerpo = document.getElementById("recetas-body");
+            const mensajeVacio = document.getElementById("mensaje-vacio");
+
+            if (recetas.length === 0) {
+                mensajeVacio.style.display = "block";
+                return;
+            }
+
+            cuerpo.innerHTML = "";
+
+            recetas.forEach(receta => {
+                cuerpo.innerHTML += `
+                <tr>
+                    <td style="text-align:center;">
+                        <span class="no-image">Sin imagen</span>
+                    </td>
+
+                    <td>${receta.nombre}</td>
+                    <td>${receta.categoria}</td>
+                    <td>${receta.aporte_calorico ?? "—"}</td>
+                    <td>${receta.tiempo_preparacion ?? "—"}</td>
+
+                    <td class="table-actions">
+                        <a href="#" class="btn btn-secondary">Editar</a>
+                        <a href="#" class="btn btn-danger">Borrar</a>
+                        <a href="#" class="btn btn-primary">Comprobante</a>
+                    </td>
+                </tr>
+            `;
+            });
+
+        } catch (error) {
+            console.error("Error cargando recetas:", error);
+        }
+    }
+
+    cargarRecetas();
+</script>
+
+{% endblock %}

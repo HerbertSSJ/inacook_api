@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Editar Receta{% endblock %}
+
+{% block content %}
+
+<div class="container editar-receta-container">
+    <h1 id="titulo-receta">Editar Receta</h1>
+
+    <form id="receta-form">
+
+        <label>Nombre</label>
+        <input id="nombre" class="form-control">
+
+        <label>Categoría</label>
+        <input id="categoria" class="form-control">
+
+        <label>Aporte Calórico</label>
+        <input id="aporte" type="number" class="form-control">
+
+        <label>Tiempo (minutos)</label>
+        <input id="tiempo" type="number" class="form-control">
+
+        <hr>
+
+        <h2>Ingredientes</h2>
+
+        <div class="ingrediente-form">
+            <label>Ingrediente</label>
+            <select id="ingrediente-select" class="form-select"></select>
+
+            <label>Cantidad</label>
+            <input id="cantidad-input" type="number" class="form-control" step="0.01">
+
+            <button type="button" class="btn btn-primary" id="add-ingrediente">
+                Agregar Ingrediente
+            </button>
+        </div>
+
+        <table id="tabla-ingredientes" class="table mt-3">
+            <thead>
+                <tr>
+                    <th>Ingrediente</th>
+                    <th>Cantidad</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <button type="button" id="guardar" class="btn btn-success mt-4">Guardar Cambios</button>
+        <a href="/ver_recetas" class="btn btn-secondary mt-4">Cancelar</a>
+    </form>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const API = "http://127.0.0.1:8000/api/";
+    const recetaID = window.location.pathname.split("/").at(-2);
+
+    let ingredientesDisponibles = [];
+    let ingredientesReceta = [];
+
+    async function cargarReceta() {
+        const res = await fetch(API + `recetas/${recetaID}/`);
+        const data = await res.json();
+
+        document.getElementById("titulo-receta").innerText = "Editar: " + data.nombre;
+
+        document.getElementById("nombre").value = data.nombre;
+        document.getElementById("categoria").value = data.categoria;
+        document.getElementById("aporte").value = data.aporte_calorico;
+        document.getElementById("tiempo").value = data.tiempo_preparacion;
+    }
+
+    async function cargarIngredientes() {
+        const res = await fetch(API + "ingredientes/");
+        ingredientesDisponibles = await res.json();
+
+        const select = document.getElementById("ingrediente-select");
+        select.innerHTML = "<option value=''>Seleccionar</option>";
+
+        ingredientesDisponibles.forEach(ing => {
+            select.innerHTML += `<option value="${ing.id}">${ing.nombre}</option>`;
+        });
+    }
+
+    async function cargarIngredientesReceta() {
+        const res = await fetch(API + "receta-ingrediente/");
+        const relaciones = await res.json();
+
+        ingredientesReceta = relaciones.filter(r => r.receta === parseInt(recetaID));
+
+        renderTabla();
+    }
+
+    function renderTabla() {
+        const tbody = document.querySelector("#tabla-ingredientes tbody");
+        tbody.innerHTML = "";
+
+        ingredientesReceta.forEach((ing, index) => {
+            const nombre = ingredientesDisponibles.find(i => i.id === ing.ingrediente)?.nombre || "???";
+
+            tbody.innerHTML += `
+            <tr>
+                <td>${nombre}</td>
+                <td>${ing.cantidad}</td>
+                <td>
+                    <button class="btn btn-danger" onclick="eliminarIngrediente(${ing.id})">
+                        Eliminar
+                    </button>
+                </td>
+            </tr>
+        `;
+        });
+    }
+
+    document.getElementById("add-ingrediente").onclick = async () => {
+        const idIng = document.getElementById("ingrediente-select").value;
+        const cant = document.getElementById("cantidad-input").value;
+
+        if (!idIng || cant <= 0) return alert("Datos inválidos");
+
+        const res = await fetch(API + "receta-ingrediente/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                receta: recetaID,
+                ingrediente: idIng,
+                cantidad: cant
+            })
+        });
+
+        await cargarIngredientesReceta();
+    };
+
+    async function eliminarIngrediente(idRelacion) {
+        await fetch(API + `receta-ingrediente/${idRelacion}/`, {
+            method: "DELETE"
+        });
+
+        cargarIngredientesReceta();
+    }
+
+    document.getElementById("guardar").onclick = async () => {
+        const data = {
+            nombre: document.getElementById("nombre").value,
+            categoria: document.getElementById("categoria").value,
+            aporte_calorico: document.getElementById("aporte").value,
+            tiempo_preparacion: document.getElementById("tiempo").value,
+            usuario: 1
+        };
+
+        const res = await fetch(API + `recetas/${recetaID}/`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
+
+        if (res.ok) {
+            alert("Receta actualizada!");
+            window.location.href = "/ver_recetas";
+        } else {
+            alert("Error al actualizar");
+        }
+    };
+
+    cargarReceta();
+    cargarIngredientes();
+    cargarIngredientesReceta();
+</script>
+{% endblock %}

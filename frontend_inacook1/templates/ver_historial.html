@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}Historial - Inacook{% endblock %}
+
+{% block content %}
+<div class="container-wide">
+    <h2>Historial de Cambios</h2>
+    {% if historial %}
+    <table class="table-wide">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Cambio</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for h in historial %}
+            <tr>
+                <td>{{ h.fecha_modificacion }}</td>
+                <td>{{ h.cambio_realizado }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No hay historial disponible.</p>
+    {% endif %}
+</div>

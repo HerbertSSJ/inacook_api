@@ -1,0 +1,36 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{% block title %}Inacook{% endblock %}</title>
+
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="#" class="nav-logo">Inacook</a>
+            <ul class="nav-links">
+                <li><a href="/frontend/recetas/">Mis Recetas</a></li>
+                <li><a href="/frontend/ingredientes/">Ingredientes</a></li>
+                <li><a href="/frontend/historial/">Historial</a></li>
+                <li><a href="/frontend/receta/nueva/">Nueva Receta</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="content">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>
