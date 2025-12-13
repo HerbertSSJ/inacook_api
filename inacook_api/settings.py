@@ -84,7 +84,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'inacook_api',
         'USER': 'root',
-        'PASSWORD': 'Sayayin2002',
+        'PASSWORD': 'QweAsd12345.',
         'HOST': 'localhost',
         'PORT': '3306',
         'OPTIONS': {
