@@ -29,7 +29,7 @@ def login_view(request):
                         request.session['user_id'] = current_user['id']
                         rol_data = current_user.get('rol')
                         if isinstance(rol_data, dict):
-                             request.session['rol_nombre'] = rol_data.get('NombreRol')
+                             request.session['rol_nombre'] = rol_data.get('nombre')
                         else:
                              request.session['rol_nombre'] = "Estudiante"
                              
@@ -39,7 +39,7 @@ def login_view(request):
                                      roles_list = r_resp.json()
                                      r_obj = next((r for r in roles_list if r['id'] == rol_data), None)
                                      if r_obj:
-                                         request.session['rol_nombre'] = r_obj.get('NombreRol')
+                                         request.session['rol_nombre'] = r_obj.get('nombre')
 
             except Exception as e:
                 print(f"Error fetching user details: {e}")

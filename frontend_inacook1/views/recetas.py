@@ -174,7 +174,6 @@ def editar_receta(request, id):
     else:
         form = RecetaForm(initial=initial_data)
 
-    # Prepare JSON for Frontend (avoids template syntax in JS)
     ingredientes_bd = {}
     for ing in ingredientes_list:
         ingredientes_bd[ing['id']] = {
@@ -186,7 +185,6 @@ def editar_receta(request, id):
     
     current_ingredientes = []
     for ri in receta_ingredientes:
-        # ri is mock_rel: {'id', 'Cantidad', 'Ingrediente': ing_obj}
         ing_obj = ri['Ingrediente']
         current_ingredientes.append({
             "id": ing_obj['id'],
@@ -238,18 +236,62 @@ def eliminar_receta(request, id):
 
 
 def ver_recetas(request):
-    response = requests.get(API_RECETAS)
+    if not request.session.get('token'):
+        return redirect('login')
 
-    if response.status_code == 200:
-        recetas = response.json()
-    else:
-        recetas = []
+    user_id = request.session.get('user_id')
+    headers = get_auth_headers(request)
+    
+    response = requests.get(API_RECETAS, headers=headers)
+    if response.status_code != 200:
         messages.error(request, "Error al cargar las recetas")
+        return render(request, "ver_recetas.html", {"recetas_data": []})
+
+    all_recetas = response.json()
+    
+    mis_recetas = [r for r in all_recetas if r.get('usuario') == user_id]
+    
+    if not mis_recetas:
+        return render(request, "ver_recetas.html", {"recetas_data": []})
+
+    try:
+        resp_rels = requests.get(API_RECETA_INGREDIENTE, headers=headers)
+        all_rels = resp_rels.json() if resp_rels.status_code == 200 else []
+        
+        resp_ings = requests.get(API_INGREDIENTES, headers=headers)
+        all_ings = resp_ings.json() if resp_ings.status_code == 200 else []
+        
+        ing_map = {i['id']: i for i in all_ings}
+        
+    except Exception as e:
+        print(f"Error fetching details: {e}")
+        all_rels = []
+        ing_map = {}
+
+    recetas_data = []
+    
+    for receta in mis_recetas:
+        rels = [r for r in all_rels if r['receta'] == receta['id']]
+        
+        total_precio = 0
+        for rel in rels:
+            ing_id = rel['ingrediente']
+            cantidad = rel['cantidad']
+            ing_obj = ing_map.get(ing_id)
+            
+            if ing_obj:
+                precio_unitario = ing_obj.get('costo_unitario', 0)
+                total_precio += (precio_unitario * cantidad)
+        
+        recetas_data.append({
+            "receta": receta,
+            "precio": round(total_precio, 2) if total_precio > 0 else "No calculado"
+        })
 
     return render(
         request,
         "ver_recetas.html",
-        {"recetas": recetas}
+        {"recetas_data": recetas_data}
     )
 
 def ver_recetas_alumnos(request):

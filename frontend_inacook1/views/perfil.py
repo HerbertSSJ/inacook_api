@@ -7,7 +7,13 @@ API_PASSWORD = "http://127.0.0.1:8000/api/cambiar-password/"
 
 
 def dashboard(request):
-    return render(request, "dashboard.html")
+    if not request.session.get('token'):
+        return redirect('login')
+        
+    return render(request, "dashboard.html", {
+        "nombre": request.session.get('username', 'Usuario'),
+        "rol": request.session.get('rol_nombre', 'Estudiante')
+    })
 
 def calculadora(request):
     return render(request, "calculadora.html")

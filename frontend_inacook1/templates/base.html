@@ -27,7 +27,7 @@
                 <li><a href="{% url 'calculadora' %}">Calculadora</a></li>
                 <li><a href="{% url 'perfil' %}">Perfil</a></li>
 
-                {% if request.session.rol_nombre == "Profesor" %}
+                {% if request.session.rol_nombre == "Profesor" or request.session.rol_nombre == "profesor" %}
                 <li><a href="{% url 'ver_recetas_alumnos' %}">Recetas de Alumnos</a></li>
                 <li><a href="{% url 'crear_ingrediente' %}">Nuevo Ingrediente</a></li>
                 {% endif %}

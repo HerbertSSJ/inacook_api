@@ -12,41 +12,71 @@
         {% csrf_token %}
 
         <h2>Datos de la receta</h2>
-        <div class="form-section">
-            {{ receta_form.as_p }}
+        <h2>Datos de la receta</h2>
+        <div class="form-container">
+            <div class="form-group full-width">
+                {{ receta_form.Nombre_Receta.label_tag }}
+                {{ receta_form.Nombre_Receta }}
+            </div>
+
+            <div class="form-group full-width">
+                {{ receta_form.Categoria.label_tag }}
+                {{ receta_form.Categoria }}
+            </div>
+
+            <div class="form-row">
+                <div class="form-group half-width">
+                    {{ receta_form.Aporte_Calorico.label_tag }}
+                    {{ receta_form.Aporte_Calorico }}
+                </div>
+                <div class="form-group half-width">
+                    {{ receta_form.Tiempo_Preparacion.label_tag }}
+                    {{ receta_form.Tiempo_Preparacion }}
+                </div>
+            </div>
+
+            <div class="form-group full-width">
+                {{ receta_form.imagen.label_tag }}
+                {{ receta_form.imagen }}
+            </div>
         </div>
 
         <h2>Ingredientes</h2>
 
-        <div class="ingrediente-form">
+        <div class="ingrediente-controls">
+            <div class="ing-input-group">
+                <label>Ingrediente</label>
+                <select id="ingrediente-select" class="form-select">
+                    <option value="">Selecciona un ingrediente</option>
+                    {% for ingrediente in ingredientes %}
+                    <option value="{{ ingrediente.id }}" data-precio="{{ ingrediente.costo_unitario }}"
+                        data-calidad="{{ ingrediente.calidad }}">
+                        {{ ingrediente.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
 
-            <label for="ingrediente-select">Ingrediente:</label>
-            <select id="ingrediente-select" class="form-select">
-                <option value="">Selecciona un ingrediente</option>
-                {% for ingrediente in ingredientes %}
-                <option value="{{ ingrediente.id }}" data-precio="{{ ingrediente.costo_unitario }}"
-                    data-calidad="{{ ingrediente.calidad }}">
-                    {{ ingrediente.nombre }}
-                </option>
-                {% endfor %}
-            </select>
+            <div class="ing-input-group small">
+                <label>Cantidad</label>
+                <input type="number" step="0.01" id="cantidad-input" placeholder="0" class="form-control">
+            </div>
 
-            <label for="cantidad-input">Cantidad:</label>
-            <input type="number" step="0.01" id="cantidad-input" placeholder="Cantidad" class="form-control">
+            <div class="ing-input-group medium">
+                <label>Unidad</label>
+                <select id="unidad-select" class="form-select">
+                    <option value="">Selecciona</option>
+                    {% for unidad in unidades %}
+                    <option value="{{ unidad.nombre }}">
+                        {{ unidad.nombre }} ({{ unidad.abreviatura }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
 
-            <label for="unidad-select">Unidad de Medición:</label>
-            <select id="unidad-select" class="form-select">
-                <option value="">Selecciona una unidad</option>
-                {% for unidad in unidades %}
-                <option value="{{ unidad.nombre }}">
-                    {{ unidad.nombre }} ({{ unidad.abreviatura }})
-                </option>
-                {% endfor %}
-            </select>
-
-            <button type="button" id="add-ingrediente" class="btn btn-primary">
-                AGREGAR
-            </button>
+            <div class="ing-btn-group">
+                <button type="button" id="add-ingrediente" class="btn btn-primary">AGREGAR</button>
+            </div>
         </div>
 
         <table id="ingredientes-table" class="ingredientes-tabla">

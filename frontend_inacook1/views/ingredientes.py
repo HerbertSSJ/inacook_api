@@ -1,4 +1,5 @@
 import requests
+from .. forms import IngredienteForm
 from django.shortcuts import render, redirect
 from django.contrib import messages
 
@@ -10,7 +11,7 @@ def crear_ingrediente(request):
     resp_u = requests.get(API_UNIDADES)
     unidades_data = resp_u.json() if resp_u.status_code == 200 else []
     
-    choices = [(u['id'], f"{u['Nombre_Unidad']} ({u['Abreviatura']})") for u in unidades_data]
+    choices = [(u['id'], f"{u['nombre']} ({u['abreviatura']})") for u in unidades_data]
 
     if request.method == "POST":
         form = IngredienteForm(request.POST, unidades_choices=choices)
@@ -78,7 +79,7 @@ def editar_ingrediente(request, id):
     
     resp_u = requests.get(API_UNIDADES)
     unidades_data = resp_u.json() if resp_u.status_code == 200 else []
-    choices = [(u['id'], f"{u['Nombre_Unidad']} ({u['Abreviatura']})") for u in unidades_data]
+    choices = [(u['id'], f"{u['nombre']} ({u['abreviatura']})") for u in unidades_data]
 
     initial_data = {
         'Nombre_Ingrediente': ingrediente.get('Nombre_Ingrediente', ingrediente.get('nombre')),

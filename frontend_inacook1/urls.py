@@ -20,6 +20,7 @@ urlpatterns = [
     path('dashboard/', perfil.dashboard, name='dashboard'),
     path('calculadora/', perfil.calculadora, name='calculadora'),
     path('perfil/', perfil.perfil_view, name='perfil'),
+    path('perfil/cambiar-contrasena/', perfil.cambiar_password, name='cambiar_contraseña'),
 
     path('ingredientes/', ingredientes.ver_ingredientes, name='ver_ingredientes'),
     path('ingredientes/crear/', ingredientes.crear_ingrediente, name='crear_ingrediente'),

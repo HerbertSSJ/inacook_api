@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth.models import User
-
+from rest_framework.authtoken.models import Token
 from .models import (
     Rol,
     UnidadMedicion,
@@ -10,6 +10,7 @@ from .models import (
     Receta,
     Comprobante,
     Historial,
+    Receta_Ingrediente,
     Receta_Ingrediente,
     Usuario,
 )
@@ -25,7 +26,6 @@ from .serializers import (
     UsuarioSerializer,
 )
 
-#Ingredientes (Lista y crea)
 class ListaIngredientes(APIView):
 
     def get(self, request):
@@ -75,7 +75,6 @@ class DetalleIngrediente(APIView):
         ingrediente.delete()
         return Response({"mensaje": "Ingrediente eliminado"}, status=204)
 
-# recetas crear y listar
 class ListaReceta(APIView):
 
     def get(self, request):
@@ -84,13 +83,27 @@ class ListaReceta(APIView):
         return Response(serializer.data)
 
     def post(self, request):
-        serializer=RecetaSerializer(data=request.data)
+        serializer = RecetaSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            
+            perfil_usuario = None
+            if request.user.is_authenticated:
+                perfil_usuario, _ = Usuario.objects.get_or_create(user=request.user)
+            
+            receta = serializer.save(usuario=perfil_usuario)
+
+            try:
+                Historial.objects.create(
+                    receta=receta,
+                    usuario=perfil_usuario,
+                    cambio_realizado="Receta creada"
+                )
+            except Exception as e:
+                print(f"Error historial: {e}")
+
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# recetas detalle, actualizar y eliminar
 class DetalleReceta(APIView):
 
     def get_object(self, id):
@@ -115,6 +128,23 @@ class DetalleReceta(APIView):
         serializer=RecetaSerializer(receta, data=request.data)
         if serializer.is_valid():
             serializer.save()
+            
+            try:
+                usuario_editor = None
+                if request.user.is_authenticated:
+                    usuario_editor, _ = Usuario.objects.get_or_create(user=request.user)
+                
+                if not usuario_editor:
+                    usuario_editor = receta.usuario
+
+                Historial.objects.create(
+                    receta=receta,
+                    usuario=usuario_editor,
+                    cambio_realizado="Receta editada"
+                )
+            except Exception as e:
+                 print(f"Error historial: {e}")
+
             return Response(serializer.data)
 
         return Response(serializer.errors, status=400)
@@ -127,7 +157,6 @@ class DetalleReceta(APIView):
         receta.delete()
         return Response({"mensaje": "Receta eliminada"}, status=204)
 
-# Lista y crea roles
 class ListaRol(APIView):
 
     def get(self, request):
@@ -321,7 +350,6 @@ class DetalleHistorial(APIView):
         registro.delete()
         return Response({"mensaje": "Historial eliminado"}, status=204)
 
-# Lista y crea usuarios
 class ListaUsuario(APIView):
 
     def get(self, request):
@@ -338,7 +366,6 @@ class ListaUsuario(APIView):
         if not username or not password:
              return Response({"error": "Faltan datos"}, status=400)
 
-        # 1. Crear usuario de Django (Auth User)
         try:
             if User.objects.filter(username=username).exists():
                 return Response({"error": "El usuario ya existe"}, status=400)
@@ -347,20 +374,14 @@ class ListaUsuario(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=400)
 
-        # 2. Crear perfil de Usuario
         try:
-            # rol_id puede ser None, el modelo lo permite
             usuario = Usuario.objects.create(user=user, rol_id=rol_id)
             serializer = UsuarioSerializer(usuario)
             return Response(serializer.data, status=201)
-        except Exception as e:
-            # Si falla, borramos el user para no dejar basura? 
-            # Para simpleza estudiante, lo dejamos o intentamos borrar.
+        except Exception as e: 
             user.delete()
             return Response({"error": "Error al crear perfil: " + str(e)}, status=400)
 
-
-# Obtener, editar o borrar un usuario
 class DetalleUsuario(APIView):
 
     def get_object(self, id):
@@ -396,7 +417,6 @@ class DetalleUsuario(APIView):
         usuario.delete()
         return Response({"mensaje": "Usuario eliminado"}, status=204)
 
-# Lista y crea relaciones receta-ingrediente
 class ListaRecetaIngrediente(APIView):
 
     def get(self, request):
@@ -411,8 +431,6 @@ class ListaRecetaIngrediente(APIView):
             return Response(serializer.data, status=201)
         return Response(serializer.errors, status=400)
 
-
-# Obtener, editar o borrar una relación receta-ingrediente
 class DetalleRecetaIngrediente(APIView):
 
     def get_object(self, id):
@@ -458,8 +476,6 @@ class CambiarPassword(APIView):
             return Response({"error": "Faltan datos"}, status=400)
 
         try:
-            # Encontrar el User de Django asociado al Usuario id o directamente el User id?
-            # Asumiremos que user_id es el ID del modelo Usuario de inaccok
             usuario = Usuario.objects.get(id=user_id)
             user = usuario.user
         except Usuario.DoesNotExist:

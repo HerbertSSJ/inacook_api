@@ -55,6 +55,9 @@ class ComprobanteSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class HistorialSerializer(serializers.ModelSerializer):
+    receta_nombre = serializers.CharField(source='receta.nombre', read_only=True)
+    usuario_nombre = serializers.CharField(source='usuario.user.username', read_only=True)
+
     class Meta:
         model = Historial
         fields = '__all__'

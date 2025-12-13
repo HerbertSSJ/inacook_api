@@ -9,49 +9,48 @@
     <h1>Historial de modificaciones</h1>
 
     {% if historial %}
-        <table class="historial-tabla">
-            <thead>
-                <tr>
-                    <th>Fecha de modificación</th>
-                    <th>Usuario</th>
-                    <th>Receta</th>
-                    <th>Cambio realizado</th>
-                </tr>
-            </thead>
+    <table class="historial-tabla">
+        <thead>
+            <tr>
+                <th class="text-center">Fecha de modificación</th>
+                <th class="text-center">Usuario</th>
+                <th class="text-center">Receta</th>
+                <th class="text-center">Cambio realizado</th>
+            </tr>
+        </thead>
 
-            <tbody>
-                {% for h in historial %}
-                    <tr>
-                        <td>{{ h.Fecha_Modificacion|date:"d/m/Y H:i" }}</td>
+        <tbody>
+            {% for h in historial %}
+            <tr>
+                <td class="text-center">{{ h.fecha_modificacion|date:"d/m/Y H:i" }}</td>
 
-                        <td>
-                            {% if h.Usuario %}
-                                {{ h.Usuario.user.username }}
-                            {% else %}
-                                Desconocido
-                            {% endif %}
-                        </td>
+                <td class="text-center">
+                    {% if h.usuario_nombre %}
+                    {{ h.usuario_nombre }}
+                    {% else %}
+                    Desconocido
+                    {% endif %}
+                </td>
 
-                        <td>
-                            {% if h.Receta %}
-                                {{ h.Receta.Nombre_Receta }}
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
+                <td class="text-center">
+                    {% if h.receta_nombre %}
+                    {{ h.receta_nombre }}
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
 
-<td>{{ h.Cambio_Realizado }}</td>
+                <td class="text-center">{{ h.cambio_realizado }}</td>
 
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 
     {% else %}
-        <p class="mensaje-vacio">
-            No hay registros en el historial todavía.
-        </p>
+    <p class="mensaje-vacio">
+        No hay registros en el historial todavía.
+    </p>
     {% endif %}
 </div>
 {% endblock %}
-
