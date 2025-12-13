@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${titulo} ?: 'Inacook'">Inacook</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <th:block th:replace="~{::head}"/>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/dashboard" class="nav-logo">Inacook</a>
+            <ul class="nav-links">
+                <li><a href="/ver_recetas">Mis Recetas</a></li>
+                <li><a href="/subir_receta">Subir Receta</a></li>
+                <li><a href="/perfil">Perfil</a></li>
+                <li><a href="/calculadora">Calculadora</a></li>
+                <li><a href="#" id="logout-btn">Cerrar Sesión</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="content">
+        <div class="container">
+            <div th:insert="~{::content}"></div>
+        </div>
+    </main>
+
+    <footer style="text-align:center;padding:12px;color:#777">Inacook ©</footer>
+    <th:block th:replace="~{::scripts}"/>
+</body>
+</html>

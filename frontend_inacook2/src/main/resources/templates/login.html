@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Iniciar sesión - Inacook</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>.login-container{max-width:420px;margin:40px auto}</style>
+</head>
+<body>
+<div class="login-container container">
+    <h1>Iniciar sesión</h1>
+    <form id="login-form" class="login-form">
+        <div class="form-group">
+            <label for="nombre">Nombre de usuario:</label>
+            <input type="text" name="nombre" id="nombre" required placeholder="Ej: hurb123">
+        </div>
+
+        <div class="form-group">
+            <label for="contraseña">Contraseña:</label>
+            <input type="password" name="contraseña" id="contraseña" required placeholder="Tu contraseña">
+        </div>
+
+        <button type="submit" class="btn">Iniciar sesión</button>
+    </form>
+    <p id="login-error" style="color:red"></p>
+    <script src="/js/config.js"></script>
+    <script src="/js/auth.js"></script>
+    <script>
+    document.getElementById('login-form').addEventListener('submit', async e=>{
+        e.preventDefault();
+        const user = document.getElementById('nombre').value;
+        const pass = document.getElementById('contraseña').value;
+        try{
+            await loginUser(user, pass);
+            window.location = '/dashboard';
+        }catch(err){ document.getElementById('login-error').textContent = err.message; }
+    });
+    </script>
+
+    <p class="register-text">¿No tienes cuenta? <a href="/register">Regístrate aquí</a></p>
+</div>
+</body>
+</html>
