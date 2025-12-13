@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Perfil - Inacook</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div class="perfil-container container">
+    <h1>Mi Perfil</h1>
+    <form id="perfil-form">
+        <div class="perfil-info">
+            <p>
+                <strong>Nombre de usuario:</strong>
+                <input type="text" id="username" />
+            </p>
+            <p>
+                <strong>Correo:</strong>
+                <input type="email" id="email" />
+            </p>
+            <p>
+                <strong>Rol:</strong>
+                <span id="rol-text">-</span>
+            </p>
+        </div>
+
+        <div class="perfil-actions">
+            <button type="submit" class="btn">Guardar cambios</button>
+            <a href="/cambiar_contraseña" class="btn">Cambiar contraseña</a>
+        </div>
+    </form>
+
+    <script src="/js/config.js"></script>
+    <script src="/js/auth.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', async ()=>{
+        if(!isLoggedIn()){ window.location='/login'; return; }
+        try{
+            const resp = await fetch(`${API_BASE_URL}/me/`, { headers: {...authHeader()} });
+            if(resp.ok){ const data = await resp.json(); document.getElementById('username').value = data.username || ''; document.getElementById('email').value = data.email || ''; document.getElementById('rol-text').textContent = data.rol || '-'; }
+        }catch(e){}
+    });
+    document.getElementById('perfil-form').addEventListener('submit', async e=>{ e.preventDefault(); alert('Implementa el endpoint PUT /me/ en tu API para guardar'); });
+    </script>
+</div>
+</body>
+</html>

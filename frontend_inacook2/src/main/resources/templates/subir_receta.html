@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Subir Receta - Inacook</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div class="container">
+    <h1>Subir nueva receta</h1>
+    <form id="crear-receta-form">
+        <h2>Datos de la receta</h2>
+        <div>
+            <label>Nombre receta</label>
+            <input type="text" id="nombre_receta" required />
+        </div>
+        <div>
+            <label>Categoría</label>
+            <input type="text" id="categoria" />
+        </div>
+        <div>
+            <label>Tiempo de preparación</label>
+            <input type="text" id="tiempo" />
+        </div>
+        <div>
+            <label>Procedimiento</label>
+            <textarea id="procedimiento"></textarea>
+        </div>
+
+        <h2>Ingredientes</h2>
+        <div class="ingrediente-form">
+            <label for="ingrediente-select">Ingrediente:</label>
+            <input id="ingrediente-nombre" placeholder="Nombre ingrediente" />
+            <label for="cantidad-input">Cantidad:</label>
+            <input type="number" step="0.01" id="cantidad-input" placeholder="Cantidad" class="form-control">
+            <label for="unidad-select">Unidad de Medición:</label>
+            <input id="unidad-select" placeholder="Unidad" />
+            <button type="button" id="add-ingrediente" class="btn">Agregar</button>
+        </div>
+
+        <table id="ingredientes-table" class="ingredientes-tabla">
+            <thead><tr><th>Ingrediente</th><th>Cantidad</th><th>Unidad</th><th>Acción</th></tr></thead>
+            <tbody></tbody>
+        </table>
+
+        <input type="hidden" name="ingredientes_json" id="ingredientes-json">
+        <div class="form-actions">
+            <button type="submit" class="btn">Guardar receta</button>
+        </div>
+    </form>
+
+    <script src="/js/config.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/recipes.js"></script>
+    <script>
+    // simple ingredient list
+    const ingredientesLista = [];
+    const tbody = document.querySelector('#ingredientes-table tbody');
+    function renderIngredientes(){
+        tbody.innerHTML = '';
+        ingredientesLista.forEach((ing, i)=>{
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${ing.nombre}</td><td>${ing.cantidad}</td><td>${ing.unidad}</td><td><button data-i="${i}" class="btn">Eliminar</button></td>`;
+            tbody.appendChild(tr);
+        });
+    }
+    document.getElementById('add-ingrediente').addEventListener('click', ()=>{
+        const nombre = document.getElementById('ingrediente-nombre').value;
+        const cantidad = document.getElementById('cantidad-input').value;
+        const unidad = document.getElementById('unidad-select').value;
+        if(!nombre) return alert('Nombre requerido');
+        ingredientesLista.push({nombre, cantidad, unidad}); renderIngredientes();
+        document.getElementById('ingrediente-nombre').value=''; document.getElementById('cantidad-input').value=''; document.getElementById('unidad-select').value='';
+    });
+    tbody.addEventListener('click', e=>{ if(e.target.dataset.i!==undefined){ ingredientesLista.splice(e.target.dataset.i,1); renderIngredientes(); } });
+
+    document.getElementById('crear-receta-form').addEventListener('submit', async e=>{
+        e.preventDefault();
+        const payload = {
+            Nombre_Receta: document.getElementById('nombre_receta').value,
+            Categoria: document.getElementById('categoria').value,
+            Tiempo_Preparacion: document.getElementById('tiempo').value,
+            Procedimiento: document.getElementById('procedimiento').value,
+            ingredientes: ingredientesLista
+        };
+        try{
+            await createRecipe(payload);
+            alert('Receta creada'); window.location='/ver_recetas';
+        }catch(err){ alert('Error: '+err.message); }
+    });
+    </script>
+</div>
+</body>
+</html>
