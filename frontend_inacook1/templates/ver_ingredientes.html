@@ -8,11 +8,12 @@
 
     <h1>Ingredientes Registrados</h1>
 
-    <a href="/crear_ingrediente" class="btn btn-primary"
-        style="background-color:#28a745; border-color:#28a745; margin-bottom:25px;">
-        ➕ Nuevo Ingrediente
+    <a href="{% url 'crear_ingrediente' %}" class="btn btn-primary"
+        style="background-color:#28a745; border-color:#28a745; margin-bottom:25px; display:inline-block;">
+        Nuevo Ingrediente
     </a>
 
+    {% if ingredientes %}
     <table class="tabla-ingredientes">
         <thead>
             <tr>
@@ -23,81 +24,37 @@
                 <th style="text-align:center;">Acciones</th>
             </tr>
         </thead>
-        <tbody id="tabla-ingredientes-body">
+        <tbody>
+            {% for ing in ingredientes %}
+            <tr>
+                <td>{{ ing.nombre }}</td>
+                <td>{{ ing.calidad }}</td>
+                <td>${{ ing.costo_unitario }}</td>
+                {% if ing.unidad_abreviatura %}
+                <td>{{ ing.unidad_nombre }} ({{ ing.unidad_abreviatura }})</td>
+                {% else %}
+                <td>{{ ing.unidad_nombre }}</td>
+                {% endif %}
+
+                <td style="text-align:center;">
+                    <a href="{% url 'editar_ingrediente' ing.id %}" class="btn btn-primary"
+                        style="background-color:#007bff; border-color:#007bff;">
+                        Editar
+                    </a>
+
+                    <a href="{% url 'eliminar_ingrediente' ing.id %}" class="btn btn-secondary"
+                        style="background-color:#dc3545; border-color:#dc3545; color:white;">
+                        Eliminar
+                    </a>
+                </td>
+
+            </tr>
+            {% endfor %}
         </tbody>
     </table>
 
-    <p id="sin-datos" class="sin-datos" style="display:none;">
-        No hay ingredientes agregados.
-    </p>
-
+    {% else %}
+    <p class="sin-datos">No hay ingredientes agregados.</p>
+    {% endif %}
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-
-    const API = "http://127.0.0.1:8000/ingredientes/";
-
-    async function cargarIngredientes() {
-        const res = await fetch(API);
-        const ingredientes = await res.json();
-
-        const tbody = document.getElementById("tabla-ingredientes-body");
-
-        if (ingredientes.length === 0) {
-            document.getElementById("sin-datos").style.display = "block";
-            return;
-        }
-
-        tbody.innerHTML = "";
-
-        ingredientes.forEach(ing => {
-            tbody.innerHTML += `
-            <tr>
-                <td>${ing.nombre}</td>
-                <td>${ing.calidad}</td>
-                <td>$${ing.costo_unitario}</td>
-
-                <!-- Solo el ID de la unidad por ahora -->
-                <td>Unidad #${ing.unidad_medicion}</td>
-
-                <td style="text-align:center;">
-
-                    <a href="/editar_ingrediente/${ing.id}/"
-                       class="btn btn-primary"
-                       style="background-color:#007bff; border-color:#007bff;">
-                        ✏ Editar
-                    </a>
-
-                    <button onclick="eliminarIngrediente(${ing.id})"
-                        class="btn btn-danger"
-                        style="background-color:#dc3545; border-color:#dc3545;">
-                        🗑 Eliminar
-                    </button>
-
-                </td>
-            </tr>
-        `;
-        });
-    }
-
-    async function eliminarIngrediente(id) {
-        if (!confirm("¿Seguro que deseas eliminar este ingrediente?")) return;
-
-        const res = await fetch(`http://127.0.0.1:8000/ingredientes/${id}/`, {
-            method: "DELETE"
-        });
-
-        if (res.status === 204) {
-            alert("Ingrediente eliminado");
-            cargarIngredientes();
-        } else {
-            alert("Error eliminando ingrediente");
-        }
-    }
-
-    cargarIngredientes();
-
-</script>
 {% endblock %}

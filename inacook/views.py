@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from django.contrib.auth.models import User
 
 from .models import (
     Rol,
@@ -329,11 +330,34 @@ class ListaUsuario(APIView):
         return Response(serializer.data)
 
     def post(self, request):
-        serializer=UsuarioSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
+        username = request.data.get("username")
+        password = request.data.get("password")
+        email = request.data.get("email")
+        rol_id = request.data.get("rol")
+
+        if not username or not password:
+             return Response({"error": "Faltan datos"}, status=400)
+
+        # 1. Crear usuario de Django (Auth User)
+        try:
+            if User.objects.filter(username=username).exists():
+                return Response({"error": "El usuario ya existe"}, status=400)
+
+            user = User.objects.create_user(username=username, password=password, email=email)
+        except Exception as e:
+            return Response({"error": str(e)}, status=400)
+
+        # 2. Crear perfil de Usuario
+        try:
+            # rol_id puede ser None, el modelo lo permite
+            usuario = Usuario.objects.create(user=user, rol_id=rol_id)
+            serializer = UsuarioSerializer(usuario)
             return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
+        except Exception as e:
+            # Si falla, borramos el user para no dejar basura? 
+            # Para simpleza estudiante, lo dejamos o intentamos borrar.
+            user.delete()
+            return Response({"error": "Error al crear perfil: " + str(e)}, status=400)
 
 
 # Obtener, editar o borrar un usuario
@@ -423,3 +447,28 @@ class DetalleRecetaIngrediente(APIView):
 
         relacion.delete()
         return Response({"mensaje": "Relación eliminada"}, status=204)
+
+class CambiarPassword(APIView):
+    def post(self, request):
+        user_id = request.data.get('user_id')
+        old_password = request.data.get('old_password')
+        new_password = request.data.get('new_password')
+
+        if not user_id or not old_password or not new_password:
+            return Response({"error": "Faltan datos"}, status=400)
+
+        try:
+            # Encontrar el User de Django asociado al Usuario id o directamente el User id?
+            # Asumiremos que user_id es el ID del modelo Usuario de inaccok
+            usuario = Usuario.objects.get(id=user_id)
+            user = usuario.user
+        except Usuario.DoesNotExist:
+            return Response({"error": "Usuario no encontrado"}, status=404)
+
+        if not user.check_password(old_password):
+            return Response({"error": "Contraseña actual incorrecta"}, status=400)
+
+        user.set_password(new_password)
+        user.save()
+        return Response({"mensaje": "Contraseña actualizada éxito"}, status=200)
+

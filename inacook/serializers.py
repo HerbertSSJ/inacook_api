@@ -18,6 +18,10 @@ class RolSerializer(serializers.ModelSerializer):
 
 
 class UsuarioSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+    email = serializers.CharField(source='user.email', read_only=True)
+    nombre_rol = serializers.CharField(source='rol.nombre', read_only=True)
+
     class Meta:
         model = Usuario
         fields = '__all__'

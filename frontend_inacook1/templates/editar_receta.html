@@ -1,56 +1,75 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Editar Receta{% endblock %}
+{% block title %}Editar Receta - Inacook{% endblock %}
 
 {% block content %}
 
 <div class="container editar-receta-container">
-    <h1 id="titulo-receta">Editar Receta</h1>
 
-    <form id="receta-form">
+    <h1>Editar Receta: {{ receta.nombre }}</h1>
 
-        <label>Nombre</label>
-        <input id="nombre" class="form-control">
+    <form method="POST" enctype="multipart/form-data" id="receta-form">
+        {% csrf_token %}
 
-        <label>Categoría</label>
-        <input id="categoria" class="form-control">
+        {% if receta.imagen %}
+        <p><strong>Imagen actual:</strong></p>
+        <img src="{{ receta.imagen }}" style="width:300px; border-radius:10px; margin-bottom:15px;">
+        {% endif %}
 
-        <label>Aporte Calórico</label>
-        <input id="aporte" type="number" class="form-control">
-
-        <label>Tiempo (minutos)</label>
-        <input id="tiempo" type="number" class="form-control">
-
-        <hr>
+        <h2>Datos de la receta</h2>
+        <div class="form-section">
+            {{ receta_form.as_p }}
+        </div>
 
         <h2>Ingredientes</h2>
 
         <div class="ingrediente-form">
+
             <label>Ingrediente</label>
-            <select id="ingrediente-select" class="form-select"></select>
+            <select id="ingrediente-select" class="form-select">
+                <option value="">Seleccionar</option>
+                {% for ingrediente in ingredientes %}
+                <option value="{{ ingrediente.id }}" data-precio="{{ ingrediente.costo_unitario }}"
+                    data-calidad="{{ ingrediente.calidad }}" data-abrev="{{ ingrediente.unidad_abreviatura }}">
+                    {{ ingrediente.nombre }}
+                </option>
+                {% endfor %}
+            </select>
 
             <label>Cantidad</label>
-            <input id="cantidad-input" type="number" class="form-control" step="0.01">
+            <input type="number" step="0.01" id="cantidad-input" class="form-control">
 
-            <button type="button" class="btn btn-primary" id="add-ingrediente">
-                Agregar Ingrediente
-            </button>
+            <label>Unidad</label>
+            <select id="unidad-select" class="form-select">
+                {% for unidad in unidades %}
+                <option value="{{ unidad.abreviatura }}">
+                    {{ unidad.nombre }} ({{ unidad.abreviatura }})
+                </option>
+                {% endfor %}
+            </select>
+
+            <button type="button" id="add-ingrediente" class="btn btn-primary">Agregar</button>
         </div>
 
-        <table id="tabla-ingredientes" class="table mt-3">
+        <table id="ingredientes-table" class="ingredientes-tabla">
             <thead>
                 <tr>
                     <th>Ingrediente</th>
                     <th>Cantidad</th>
+                    <th>Unidad</th>
+                    <th>Precio</th>
+                    <th>Calidad</th>
                     <th>Acción</th>
                 </tr>
             </thead>
             <tbody></tbody>
         </table>
 
-        <button type="button" id="guardar" class="btn btn-success mt-4">Guardar Cambios</button>
-        <a href="/ver_recetas" class="btn btn-secondary mt-4">Cancelar</a>
+        <input type="hidden" id="ingredientes-json" name="ingredientes_json">
+
+        <button class="btn btn-success mt-3">Guardar Cambios</button>
+        <a href="{% url 'ver_recetas' %}" class="btn btn-secondary mt-3">Cancelar</a>
     </form>
 </div>
 
@@ -58,118 +77,69 @@
 
 {% block scripts %}
 <script>
-    const API = "http://127.0.0.1:8000/api/";
-    const recetaID = window.location.pathname.split("/").at(-2);
 
-    let ingredientesDisponibles = [];
-    let ingredientesReceta = [];
+    const ingredientesBD = JSON.parse("{{ ingredientes_bd_json|escapejs }}");
+    let ingredientesLista = JSON.parse("{{ receta_ingredientes_json|escapejs }}");
 
-    async function cargarReceta() {
-        const res = await fetch(API + `recetas/${recetaID}/`);
-        const data = await res.json();
 
-        document.getElementById("titulo-receta").innerText = "Editar: " + data.nombre;
+    const tablaBody = document.querySelector("#ingredientes-table tbody");
+    const ingredientesJson = document.getElementById("ingredientes-json");
 
-        document.getElementById("nombre").value = data.nombre;
-        document.getElementById("categoria").value = data.categoria;
-        document.getElementById("aporte").value = data.aporte_calorico;
-        document.getElementById("tiempo").value = data.tiempo_preparacion;
-    }
+    let ingredientesReceta = ingredientesLista;
 
-    async function cargarIngredientes() {
-        const res = await fetch(API + "ingredientes/");
-        ingredientesDisponibles = await res.json();
-
-        const select = document.getElementById("ingrediente-select");
-        select.innerHTML = "<option value=''>Seleccionar</option>";
-
-        ingredientesDisponibles.forEach(ing => {
-            select.innerHTML += `<option value="${ing.id}">${ing.nombre}</option>`;
-        });
-    }
-
-    async function cargarIngredientesReceta() {
-        const res = await fetch(API + "receta-ingrediente/");
-        const relaciones = await res.json();
-
-        ingredientesReceta = relaciones.filter(r => r.receta === parseInt(recetaID));
-
-        renderTabla();
-    }
+    renderTabla();
 
     function renderTabla() {
-        const tbody = document.querySelector("#tabla-ingredientes tbody");
-        tbody.innerHTML = "";
+        tablaBody.innerHTML = "";
 
-        ingredientesReceta.forEach((ing, index) => {
-            const nombre = ingredientesDisponibles.find(i => i.id === ing.ingrediente)?.nombre || "???";
-
-            tbody.innerHTML += `
+        ingredientesReceta.forEach((ing, i) => {
+            tablaBody.innerHTML += `
             <tr>
-                <td>${nombre}</td>
+                <td>${ing.nombre}</td>
                 <td>${ing.cantidad}</td>
-                <td>
-                    <button class="btn btn-danger" onclick="eliminarIngrediente(${ing.id})">
-                        Eliminar
-                    </button>
-                </td>
+                <td>${ing.unidad}</td>
+                <td>$${ing.precio}</td>
+                <td>${ing.calidad}</td>
+                <td><button class="btn btn-danger eliminar" data-i="${i}">Eliminar</button></td>
             </tr>
         `;
         });
+
+        document.querySelectorAll(".eliminar").forEach(btn => {
+            btn.onclick = e => {
+                ingredientesReceta.splice(e.target.dataset.i, 1);
+                renderTabla();
+            };
+        });
+
+        ingredientesJson.value = JSON.stringify(ingredientesReceta);
     }
 
-    document.getElementById("add-ingrediente").onclick = async () => {
-        const idIng = document.getElementById("ingrediente-select").value;
-        const cant = document.getElementById("cantidad-input").value;
 
-        if (!idIng || cant <= 0) return alert("Datos inválidos");
+    document.getElementById("add-ingrediente").onclick = () => {
+        const id = document.getElementById("ingrediente-select").value;
+        const cantidad = document.getElementById("cantidad-input").value;
+        const unidad = document.getElementById("unidad-select").value;
 
-        const res = await fetch(API + "receta-ingrediente/", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                receta: recetaID,
-                ingrediente: idIng,
-                cantidad: cant
-            })
+        if (!id) return alert("Debes seleccionar un ingrediente.");
+        if (!cantidad || cantidad <= 0) return alert("Cantidad inválida");
+
+        const d = ingredientesBD[id];
+
+        ingredientesLista.push({
+            id,
+            nombre: d.nombre,
+            cantidad,
+            unidad,
+            precio: d.precio,
+            calidad: d.calidad
         });
 
-        await cargarIngredientesReceta();
+        renderTabla();
     };
 
-    async function eliminarIngrediente(idRelacion) {
-        await fetch(API + `receta-ingrediente/${idRelacion}/`, {
-            method: "DELETE"
-        });
 
-        cargarIngredientesReceta();
-    }
-
-    document.getElementById("guardar").onclick = async () => {
-        const data = {
-            nombre: document.getElementById("nombre").value,
-            categoria: document.getElementById("categoria").value,
-            aporte_calorico: document.getElementById("aporte").value,
-            tiempo_preparacion: document.getElementById("tiempo").value,
-            usuario: 1
-        };
-
-        const res = await fetch(API + `recetas/${recetaID}/`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data)
-        });
-
-        if (res.ok) {
-            alert("Receta actualizada!");
-            window.location.href = "/ver_recetas";
-        } else {
-            alert("Error al actualizar");
-        }
-    };
-
-    cargarReceta();
-    cargarIngredientes();
-    cargarIngredientesReceta();
+    renderTabla();
 </script>
+
 {% endblock %}

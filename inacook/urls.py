@@ -18,11 +18,13 @@ from inacook.views import (
     DetalleRol,
     ListaRecetaIngrediente,
     DetalleRecetaIngrediente,
+    CambiarPassword,
 )
 
 urlpatterns=[
     path('admin/', admin.site.urls),
     path('token-auth/', obtain_auth_token),
+    path('change-password/', CambiarPassword.as_view()),
     path('ingredientes/', ListaIngredientes.as_view()),
     path('ingredientes/<int:id>/', DetalleIngrediente.as_view()),
     path('recetas/', ListaReceta.as_view()),
