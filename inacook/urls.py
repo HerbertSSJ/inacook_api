@@ -22,7 +22,6 @@ from inacook.views import (
 )
 
 urlpatterns=[
-    path('admin/', admin.site.urls),
     path('token-auth/', obtain_auth_token),
     path('change-password/', CambiarPassword.as_view()),
     path('ingredientes/', ListaIngredientes.as_view()),
