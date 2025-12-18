@@ -41,7 +41,7 @@ def ver_comprobante(request, id):
             cantidad = rel['cantidad']
             sub = costo * cantidad
             subtotal_sum += sub
-            # intentar obtener peso_total desde la relación; si no existe, calcularlo desde 'peso' si está
+            
             peso_total = None
             if isinstance(rel, dict):
                 peso_total = rel.get('peso_total')

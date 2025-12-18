@@ -29,14 +29,14 @@ def perfil_view(request):
     response = requests.get(f"{API_USUARIOS}{user_id}/")
     usuario = response.json() if response.status_code == 200 else {}
 
-    # resolver nombre del rol para mostrar en la plantilla
+    
     rol_nombre = None
     try:
-        # caso: serializer expone 'nombre_rol' en la respuesta
+        
         if usuario.get('nombre_rol'):
             rol_nombre = usuario.get('nombre_rol')
         else:
-            # caso: 'rol' es un objeto con 'nombre'
+            
             rol = usuario.get('rol')
             if isinstance(rol, dict) and rol.get('nombre'):
                 rol_nombre = rol.get('nombre')

@@ -12,8 +12,8 @@ def ver_historial(request):
     if response.status_code == 200:
         historial = response.json()
         for h in historial:
-             if h.get('fecha_modificacion'):
-                 h['fecha_modificacion'] = parse_datetime(h['fecha_modificacion'])
+            if h.get('fecha_modificacion'):
+                h['fecha_modificacion'] = parse_datetime(h['fecha_modificacion'])
         
         historial.sort(key=lambda x: x['fecha_modificacion'] if x.get('fecha_modificacion') else parse_datetime('1900-01-01T00:00:00Z'), reverse=True)
     else:
