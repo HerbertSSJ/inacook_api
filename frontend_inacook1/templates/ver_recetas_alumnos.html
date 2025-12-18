@@ -21,7 +21,7 @@
                 <select name="categoria">
                     <option value="">Todas</option>
                     {% for categoria in categorias %}
-                    <option value="{{ categoria }}" {% if request.GET.categoria==categoria %}selected{% endif %}>
+                    <option value="{{ categoria }}" {% if request.GET.categoria == categoria %}selected{% endif %}>
                         {{ categoria }}
                     </option>
                     {% endfor %}
@@ -33,7 +33,7 @@
                 <select name="letra">
                     <option value="">Todas</option>
                     {% for letra in "ABCDEFGHIJKLMNOPQRSTUVWXYZ" %}
-                    <option value="{{ letra }}" {% if request.GET.letra==letra %}selected{% endif %}>
+                    <option value="{{ letra }}" {% if request.GET.letra == letra %}selected{% endif %}>
                         {{ letra }}
                     </option>
                     {% endfor %}
@@ -71,10 +71,10 @@
                     {% endif %}
                 </td>
 
-                <td>{{ receta.Nombre_Receta }}</td>
+                <td>{{ data.nombre }}</td>
                 <td>{{ usuario }}</td>
-                <td>{{ receta.Categoria }}</td>
-                <td>{{ receta.Tiempo_Preparacion }}</td>
+                <td>{{ data.categoria }}</td>
+                <td>{{ data.tiempo }}</td>
 
                 <td>
                     {% if precio != "No calculado" %}
@@ -85,7 +85,7 @@
                 </td>
 
                 <td>
-                    <a href="{% url 'comprobante_receta' receta.id %}" class="btn btn-secondary">Ver</a>
+                    <a href="{% url 'ver_comprobante' receta.id %}" class="btn btn-secondary">Ver</a>
                 </td>
 
             </tr>

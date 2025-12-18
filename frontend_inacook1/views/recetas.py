@@ -536,12 +536,12 @@ def ver_recetas_alumnos(request):
         tiempo = r.get('tiempo_preparacion') or r.get('Tiempo_Preparacion') or ''
 
         recetas_data.append({
-            'id': r.get('id'),
+            'receta': r,
             'nombre': nombre,
             'categoria': categoria,
             'tiempo': tiempo,
             'precio_subtotal': round(subtotal, 2) if subtotal > 0 else "No calculado",
-            'precio_total': total_con_iva,
+            'precio': total_con_iva if subtotal > 0 else "No calculado",
             'usuario': user_dict.get(r['usuario'], 'Desconocido')
         })
         

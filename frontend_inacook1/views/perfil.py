@@ -3,7 +3,8 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 
 API_USUARIOS = "http://127.0.0.1:8000/api/usuarios/"
-API_PASSWORD = "http://127.0.0.1:8000/api/cambiar-password/"
+API_PASSWORD = "http://127.0.0.1:8000/api/change-password/"
+API_ROLES = "http://127.0.0.1:8000/api/roles/"
 
 
 def dashboard(request):
@@ -40,7 +41,7 @@ def perfil_view(request):
             if isinstance(rol, dict) and rol.get('nombre'):
                 rol_nombre = rol.get('nombre')
             elif isinstance(rol, int):
-                # buscar en API de roles
+                
                 resp_roles = requests.get(API_ROLES)
                 if resp_roles.status_code == 200:
                     roles = resp_roles.json()
@@ -72,18 +73,44 @@ def perfil_view(request):
 
 
 def cambiar_password(request):
+    if not request.session.get('token'):
+        messages.error(request, "Debes iniciar sesión para cambiar la contraseña")
+        return redirect('login')
+
     if request.method == "POST":
-        data = {
-            "password": request.POST.get("password"),
+        old_password = request.POST.get("old_password")
+        new_password = request.POST.get("password")
+
+        user_id = request.session.get('user_id')
+        if not user_id:
+            messages.error(request, "Usuario no identificado, inicia sesión")
+            return redirect('login')
+
+        payload = {
+            "user_id": user_id,
+            "old_password": old_password,
+            "new_password": new_password
         }
 
-        response = requests.post(API_PASSWORD, json=data)
+        token = request.session.get('token')
+        headers = {'Authorization': f'Token {token}'} if token else {}
 
-        if response.status_code == 200:
+        try:
+            response = requests.post(API_PASSWORD, json=payload, headers=headers)
+        except Exception as e:
+            messages.error(request, f"Error al comunicarse con el servidor: {e}")
+            return render(request, "cambiar_password.html")
+
+        if response.status_code in (200, 204):
             messages.success(request, "Contraseña actualizada")
             return redirect("perfil")
         else:
-            messages.error(request, "Error al cambiar contraseña")
+            try:
+                err = response.json()
+                detail = err.get('error') or err.get('detail') or err
+            except Exception:
+                detail = response.text
+            messages.error(request, f"Error al cambiar contraseña: {detail}")
 
     return render(request, "cambiar_password.html")
 

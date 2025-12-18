@@ -56,6 +56,7 @@ def ver_comprobante(request, id):
             ingredientes_list.append({
                 'nombre': ing['nombre'],
                 'cantidad': cantidad,
+                'peso': rel.get('peso'),
                 'peso_total': peso_total,
                 'unidad': unidad_nombre,
                 'precio': costo,
