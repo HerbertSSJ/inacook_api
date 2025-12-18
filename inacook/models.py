@@ -44,6 +44,8 @@ class Receta_Ingrediente(models.Model):
     receta=models.ForeignKey(Receta, on_delete=models.CASCADE)
     ingrediente=models.ForeignKey(Ingrediente, on_delete=models.CASCADE)
     cantidad=models.FloatField()
+    peso=models.FloatField(null=True, blank=True, default=0.0)
+    peso_total=models.FloatField(null=True, blank=True, default=0.0)
 
     def __str__(self):
         return f"{self.cantidad} de {self.ingrediente.nombre}"

@@ -40,6 +40,9 @@
             <label>Cantidad</label>
             <input type="number" step="0.01" id="cantidad-input" class="form-control">
 
+            <label>Peso (por unidad)</label>
+            <input type="number" step="0.01" id="peso-input" class="form-control">
+
             <label>Unidad</label>
             <select id="unidad-select" class="form-select">
                 {% for unidad in unidades %}
@@ -55,13 +58,14 @@
         <table id="ingredientes-table" class="ingredientes-tabla">
             <thead>
                 <tr>
-                    <th>Ingrediente</th>
-                    <th>Cantidad</th>
-                    <th>Unidad</th>
-                    <th>Precio</th>
-                    <th>Calidad</th>
-                    <th>Acción</th>
-                </tr>
+                        <th>Ingrediente</th>
+                        <th>Cantidad</th>
+                        <th>Peso total</th>
+                        <th>Unidad</th>
+                        <th>Precio</th>
+                        <th>Calidad</th>
+                        <th>Acción</th>
+                    </tr>
             </thead>
             <tbody></tbody>
         </table>
@@ -93,10 +97,12 @@
         tablaBody.innerHTML = "";
 
         ingredientesReceta.forEach((ing, i) => {
+            const pesoTotal = (ing.peso_total !== undefined && ing.peso_total !== null) ? ing.peso_total : '-';
             tablaBody.innerHTML += `
             <tr>
                 <td>${ing.nombre}</td>
                 <td>${ing.cantidad}</td>
+                <td>${pesoTotal}</td>
                 <td>${ing.unidad}</td>
                 <td>$${ing.precio}</td>
                 <td>${ing.calidad}</td>
@@ -120,16 +126,21 @@
         const id = document.getElementById("ingrediente-select").value;
         const cantidad = document.getElementById("cantidad-input").value;
         const unidad = document.getElementById("unidad-select").value;
+        const peso = parseFloat(document.getElementById('peso-input').value || 0);
 
         if (!id) return alert("Debes seleccionar un ingrediente.");
         if (!cantidad || cantidad <= 0) return alert("Cantidad inválida");
 
         const d = ingredientesBD[id];
 
+        const peso_total = peso > 0 ? (peso * parseFloat(cantidad)) : null;
+
         ingredientesLista.push({
             id,
             nombre: d.nombre,
             cantidad,
+            peso: peso > 0 ? peso : null,
+            peso_total: peso_total,
             unidad,
             precio: d.precio,
             calidad: d.calidad

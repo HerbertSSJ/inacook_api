@@ -33,7 +33,12 @@
             {% for ing in ingredientes %}
             <tr>
                 <td>{{ ing.nombre }}</td>
+
                 <td>{{ ing.cantidad }}</td>
+
+                <td>{{ ing.cantidad|floatformat:0 }}</td>
+                <td>{% if ing.peso_total %}{{ ing.peso_total|floatformat:0 }}{% else %}-{% endif %}</td>
+
                 <td>{{ ing.unidad }}</td>
                 <td>${{ ing.precio|floatformat:0 }}</td>
                 <td>${{ ing.subtotal|floatformat:0 }}</td>

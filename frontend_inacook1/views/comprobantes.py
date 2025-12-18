@@ -41,10 +41,22 @@ def ver_comprobante(request, id):
             cantidad = rel['cantidad']
             sub = costo * cantidad
             subtotal_sum += sub
-            
+            # intentar obtener peso_total desde la relación; si no existe, calcularlo desde 'peso' si está
+            peso_total = None
+            if isinstance(rel, dict):
+                peso_total = rel.get('peso_total')
+                if not peso_total:
+                    peso_val = rel.get('peso')
+                    try:
+                        if peso_val is not None:
+                            peso_total = float(peso_val) * float(cantidad)
+                    except Exception:
+                        peso_total = None
+
             ingredientes_list.append({
                 'nombre': ing['nombre'],
                 'cantidad': cantidad,
+                'peso_total': peso_total,
                 'unidad': unidad_nombre,
                 'precio': costo,
                 'subtotal': sub
