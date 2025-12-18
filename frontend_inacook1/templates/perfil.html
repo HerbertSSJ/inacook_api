@@ -27,7 +27,7 @@
             <div class="perfil-row">
                 <label><strong>Rol:</strong></label>
                 <span class="perfil-rol">
-                    {{ usuario.usuario.rol.NombreRol|default:"Sin rol" }}
+                    {{ rol_nombre|default:usuario.nombre_rol|default:"Sin rol" }}
                 </span>
             </div>
 

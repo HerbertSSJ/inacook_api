@@ -57,16 +57,32 @@ API_REGISTER = "http://127.0.0.1:8000/api/usuarios/"
 API_ROLES = "http://127.0.0.1:8000/api/roles/"
 
 def register_view(request):
-    if request.method == "POST":
+    roles = []
+    # obtener lista de roles para mostrar en el formulario
+    try:
         resp_roles = requests.get(API_ROLES)
-        rol_id = None
         if resp_roles.status_code == 200:
             roles = resp_roles.json()
+    except Exception:
+        roles = []
+
+    if request.method == "POST":
+        # si el usuario seleccionó un rol en el formulario, usarlo
+        selected_rol = request.POST.get("rol")
+        rol_id = None
+        if selected_rol:
+            try:
+                rol_id = int(selected_rol)
+            except Exception:
+                rol_id = None
+
+        # si no se seleccionó rol, buscar por nombre 'Estudiante' como fallback
+        if rol_id is None:
             for r in roles:
-                if r.get("nombre") == "Alumno":
+                if r.get("nombre") and r.get("nombre").lower() == "estudiante":
                     rol_id = r.get("id")
                     break
-        
+
         data = {
             "username": request.POST.get("nombre"),
             "password": request.POST.get("contraseña"),
@@ -82,7 +98,7 @@ def register_view(request):
         else:
             messages.error(request, "Error al crear usuario")
 
-    return render(request, "register.html")
+    return render(request, "register.html", {"roles": roles})
 
 
 def logout_view(request):

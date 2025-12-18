@@ -28,6 +28,28 @@ def perfil_view(request):
     response = requests.get(f"{API_USUARIOS}{user_id}/")
     usuario = response.json() if response.status_code == 200 else {}
 
+    # resolver nombre del rol para mostrar en la plantilla
+    rol_nombre = None
+    try:
+        # caso: serializer expone 'nombre_rol' en la respuesta
+        if usuario.get('nombre_rol'):
+            rol_nombre = usuario.get('nombre_rol')
+        else:
+            # caso: 'rol' es un objeto con 'nombre'
+            rol = usuario.get('rol')
+            if isinstance(rol, dict) and rol.get('nombre'):
+                rol_nombre = rol.get('nombre')
+            elif isinstance(rol, int):
+                # buscar en API de roles
+                resp_roles = requests.get(API_ROLES)
+                if resp_roles.status_code == 200:
+                    roles = resp_roles.json()
+                    r = next((x for x in roles if x.get('id') == rol), None)
+                    if r:
+                        rol_nombre = r.get('nombre')
+    except Exception:
+        rol_nombre = None
+
     if request.method == "POST":
         data = {
             "username": request.POST.get("username"),
@@ -45,7 +67,7 @@ def perfil_view(request):
     return render(
         request,
         "perfil.html",
-        {"usuario": usuario}
+        {"usuario": usuario, "rol_nombre": rol_nombre}
     )
 
 
