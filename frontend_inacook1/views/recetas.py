@@ -84,7 +84,7 @@ def subir_receta(request):
                                 "ingrediente": ing_id,
                                 "cantidad": cantidad
                             }
-                            # opcional: peso y peso_total enviados desde frontend
+                            
                             if item.get('peso') is not None:
                                 try:
                                     ing_data['peso'] = float(item.get('peso'))

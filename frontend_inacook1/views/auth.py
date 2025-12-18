@@ -58,7 +58,7 @@ API_ROLES = "http://127.0.0.1:8000/api/roles/"
 
 def register_view(request):
     roles = []
-    # obtener lista de roles para mostrar en el formulario
+    
     try:
         resp_roles = requests.get(API_ROLES)
         if resp_roles.status_code == 200:
@@ -67,7 +67,7 @@ def register_view(request):
         roles = []
 
     if request.method == "POST":
-        # si el usuario seleccionó un rol en el formulario, usarlo
+
         selected_rol = request.POST.get("rol")
         rol_id = None
         if selected_rol:
@@ -76,7 +76,7 @@ def register_view(request):
             except Exception:
                 rol_id = None
 
-        # si no se seleccionó rol, buscar por nombre 'Estudiante' como fallback
+        
         if rol_id is None:
             for r in roles:
                 if r.get("nombre") and r.get("nombre").lower() == "estudiante":
