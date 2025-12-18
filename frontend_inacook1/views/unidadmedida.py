@@ -1,5 +1,5 @@
 import requests
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib import messages
 
 API_UNIDADES = "http://127.0.0.1:8000/api/unidades/"
