@@ -371,6 +371,17 @@ class ListaUsuario(APIView):
                 return Response({"error": "El usuario ya existe"}, status=400)
 
             user = User.objects.create_user(username=username, password=password, email=email)
+
+            # Si el rol corresponde a Profesor, marcar como staff/superuser
+            try:
+                if rol_id is not None:
+                    rol_obj = Rol.objects.filter(id=rol_id).first()
+                    if rol_obj and rol_obj.nombre and rol_obj.nombre.lower() in ("profesor", "profesora", "teacher", "admin"):
+                        user.is_staff = True
+                        user.is_superuser = True
+                        user.save()
+            except Exception:
+                pass
         except Exception as e:
             return Response({"error": str(e)}, status=400)
 
