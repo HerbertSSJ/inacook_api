@@ -138,12 +138,9 @@ STATICFILES_DIRS = [
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# In development allow local frontend origins only. For production
-# replace this with the exact hostnames of your frontend and set
+
 # CORS_ALLOW_CREDENTIALS appropriately.
-# Allow only the local Django dev server origin. If your frontend runs on a
-# different port add it here (e.g. http://localhost:3000). For production,
-# replace with your real frontend domains (https://example.com).
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000"
