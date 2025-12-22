@@ -82,10 +82,10 @@ WSGI_APPLICATION = 'inacook_api.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'dv$inacook_api',
-        'USER': 'dv',
+        'NAME': 'inacook_api',
+        'USER': 'root',
         'PASSWORD': 'QweAsd12345.',
-        'HOST': 'dv.mysql.pythonanywhere-services.com',
+        'HOST': 'localhost',
         'PORT': '3306',
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
