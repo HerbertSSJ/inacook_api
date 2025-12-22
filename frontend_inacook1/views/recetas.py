@@ -23,14 +23,27 @@ def subir_receta(request):
     headers = get_auth_headers(request)
 
     try:
-        resp_ing = requests.get(API_INGREDIENTES)
+        resp_ing = requests.get(API_INGREDIENTES, headers=headers)
         ingredientes = resp_ing.json() if resp_ing.status_code == 200 else []
         
-        resp_uni = requests.get(API_UNIDADES)
+        resp_uni = requests.get(API_UNIDADES, headers=headers)
         unidades = resp_uni.json() if resp_uni.status_code == 200 else []
     except:
         ingredientes = []
         unidades = []
+
+    # Anotar abreviatura de unidad en cada ingrediente (si tenemos las unidades)
+    try:
+        unit_map = {u.get('id'): u.get('abreviatura') for u in unidades}
+        for ing in ingredientes:
+            u_id = ing.get('unidad_medicion')
+            # si la unidad viene como objeto
+            if isinstance(u_id, dict):
+                ing['unidad_abreviatura'] = u_id.get('abreviatura')
+            else:
+                ing['unidad_abreviatura'] = unit_map.get(u_id, '')
+    except Exception:
+        pass
 
     if not unidades:
         unidades = [
@@ -54,7 +67,9 @@ def subir_receta(request):
                 "categoria": form.cleaned_data['Categoria'],
                 "aporte_calorico": form.cleaned_data['Aporte_Calorico'],
                 "tiempo_preparacion": form.cleaned_data['Tiempo_Preparacion'],
-                "usuario": request.session.get("user_id")
+                "usuario": request.session.get("user_id"),
+                "seccion": form.cleaned_data.get('Seccion'),
+                "asignatura": form.cleaned_data.get('Asignatura')
             }
             
             files = {}
@@ -202,7 +217,9 @@ def editar_receta(request, id):
                 "categoria": form.cleaned_data['Categoria'],
                 "aporte_calorico": form.cleaned_data['Aporte_Calorico'],
                 "tiempo_preparacion": form.cleaned_data['Tiempo_Preparacion'],
-                "usuario": receta.get('usuario')
+                "usuario": receta.get('usuario'),
+                "seccion": form.cleaned_data.get('Seccion'),
+                "asignatura": form.cleaned_data.get('Asignatura')
             }
             
             requests.put(f"{API_RECETAS}{id}/", json=data, headers=headers)

@@ -6,6 +6,8 @@ class RecetaForm(forms.Form):
     Aporte_Calorico = forms.IntegerField(label="Aporte Calórico (kcal)", widget=forms.NumberInput(attrs={'class': 'form-control'}))
     Tiempo_Preparacion = forms.IntegerField(label="Tiempo de Preparación (min)", widget=forms.NumberInput(attrs={'class': 'form-control'}))
     imagen = forms.ImageField(label="Imagen", required=False, widget=forms.FileInput(attrs={'class': 'form-control'}))
+    Seccion = forms.CharField(label="Sección", max_length=100, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    Asignatura = forms.CharField(label="Asignatura", max_length=100, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
 
 class IngredienteForm(forms.Form):
     Nombre_Ingrediente = forms.CharField(label="Nombre del Ingrediente", max_length=100, widget=forms.TextInput(attrs={'class': 'form-control'}))

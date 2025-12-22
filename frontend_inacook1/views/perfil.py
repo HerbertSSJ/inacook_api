@@ -29,7 +29,7 @@ def perfil_view(request):
     response = requests.get(f"{API_USUARIOS}{user_id}/")
     usuario = response.json() if response.status_code == 200 else {}
 
-    
+     
     rol_nombre = None
     try:
         

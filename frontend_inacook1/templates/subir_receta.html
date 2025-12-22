@@ -39,6 +39,16 @@
                 {{ receta_form.imagen.label_tag }}
                 {{ receta_form.imagen }}
             </div>
+            <div class="form-row">
+                <div class="form-group half-width">
+                    {{ receta_form.Seccion.label_tag }}
+                    {{ receta_form.Seccion }}
+                </div>
+                <div class="form-group half-width">
+                    {{ receta_form.Asignatura.label_tag }}
+                    {{ receta_form.Asignatura }}
+                </div>
+            </div>
         </div>
 
         <h2>Ingredientes</h2>
@@ -50,7 +60,7 @@
                     <option value="">Selecciona un ingrediente</option>
                     {% for ingrediente in ingredientes %}
                     <option value="{{ ingrediente.id }}" data-precio="{{ ingrediente.costo_unitario }}"
-                        data-calidad="{{ ingrediente.calidad }}">
+                        data-calidad="{{ ingrediente.calidad }}" data-abrev="{{ ingrediente.unidad_abreviatura }}">
                         {{ ingrediente.nombre }}
                     </option>
                     {% endfor %}
@@ -72,7 +82,7 @@
                 <select id="unidad-select" class="form-select">
                     <option value="">Selecciona</option>
                     {% for unidad in unidades %}
-                    <option value="{{ unidad.nombre }}">
+                    <option value="{{ unidad.abreviatura }}">
                         {{ unidad.nombre }} ({{ unidad.abreviatura }})
                     </option>
                     {% endfor %}
@@ -179,16 +189,44 @@
 
         const peso_total = peso > 0 ? (peso * cantidad) : null;
 
-        ingredientesLista.push({
-            id,
-            nombre,
-            cantidad,
-            peso: peso > 0 ? peso : null,
-            peso_total: peso_total,
-            unidad,
-            precio,
-            calidad
-        });
+        // Validación: si unidad original del ingrediente difiere de la unidad seleccionada, pedir confirmación
+        const originalAbrev = selectedOption.dataset.abrev || '';
+        if (originalAbrev && unidad && originalAbrev !== unidad) {
+            const ok = confirm(`Este ingrediente fue creado con la unidad de medida '${originalAbrev}'.\n¿Deseas agregarlo con la unidad '${unidad}' igualmente? (Aceptar = sí, Cancelar = no)`);
+            if (!ok) {
+                return; // no agregar
+            }
+        }
+
+        // Si ya existe el mismo ingrediente con la misma unidad, sumar cantidades
+        const existingIndex = ingredientesLista.findIndex(it => it.id == id && it.unidad == unidad);
+        if (existingIndex !== -1) {
+            const existing = ingredientesLista[existingIndex];
+            const newCantidad = parseFloat(existing.cantidad) + parseFloat(cantidad);
+            existing.cantidad = Number.isInteger(newCantidad) ? newCantidad : parseFloat(newCantidad.toFixed(2));
+            // actualizar peso por unidad si se proporcionó
+            if (peso > 0) {
+                existing.peso = peso;
+                existing.peso_total = parseFloat((peso * existing.cantidad).toFixed(2));
+            } else {
+                if (existing.peso) {
+                    existing.peso_total = parseFloat((existing.peso * existing.cantidad).toFixed(2));
+                } else {
+                    existing.peso_total = null;
+                }
+            }
+        } else {
+            ingredientesLista.push({
+                id,
+                nombre,
+                cantidad,
+                peso: peso > 0 ? peso : null,
+                peso_total: peso_total,
+                unidad,
+                precio,
+                calidad
+            });
+        }
 
         renderizarTabla();
 

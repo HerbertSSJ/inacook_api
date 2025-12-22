@@ -9,25 +9,31 @@ API_INGREDIENTES = "http://127.0.0.1:8000/api/ingredientes/"
 API_UNIDADES = "http://127.0.0.1:8000/api/unidades/"
 
 def ver_comprobante(request, id):
-    resp_r = requests.get(f"{API_RECETAS}{id}/")
+    # Incluir token si está en sesión para obtener datos del usuario
+    headers = {}
+    token = request.session.get('token')
+    if token:
+        headers['Authorization'] = f'Token {token}'
+
+    resp_r = requests.get(f"{API_RECETAS}{id}/", headers=headers)
     if resp_r.status_code != 200:
         messages.error(request, "Receta no encontrada")
         return redirect('ver_recetas')
     receta = resp_r.json()
     
-    resp_c = requests.get(API_COMPROBANTES)
+    resp_c = requests.get(API_COMPROBANTES, headers=headers)
     comprobantes = resp_c.json() if resp_c.status_code == 200 else []
     
     comprobante = next((c for c in comprobantes if c.get('receta') == id), None)
     
-    resp_rel = requests.get(API_RECETA_INGREDIENTE)
+    resp_rel = requests.get(API_RECETA_INGREDIENTE, headers=headers)
     all_rels = resp_rel.json() if resp_rel.status_code == 200 else []
     rels = [rel for rel in all_rels if rel['receta'] == id]
     
-    resp_ing = requests.get(API_INGREDIENTES)
+    resp_ing = requests.get(API_INGREDIENTES, headers=headers)
     ing_map = {i['id']: i for i in resp_ing.json()} if resp_ing.status_code == 200 else {}
     
-    resp_uni = requests.get(API_UNIDADES) 
+    resp_uni = requests.get(API_UNIDADES, headers=headers)
     uni_map = {u['id']: u['abreviatura'] for u in resp_uni.json()} if resp_uni.status_code == 200 else {}
     
     subtotal_sum = 0

@@ -33,7 +33,9 @@
             <select name="rol" id="rol" required>
                 {% if roles %}
                     {% for r in roles %}
-                        <option value="{{ r.id }}" {% if r.nombre|lower == 'estudiante' %}selected{% endif %}>{{ r.nombre }}</option>
+                        {% if r.nombre|lower == 'estudiante' %}
+                            <option value="{{ r.id }}" selected>{{ r.nombre }}</option>
+                        {% endif %}
                     {% endfor %}
                 {% else %}
                     <option value="">No hay roles disponibles</option>

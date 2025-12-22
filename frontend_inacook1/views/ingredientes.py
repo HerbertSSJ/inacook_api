@@ -23,8 +23,13 @@ def crear_ingrediente(request):
                 "costo_unitario": form.cleaned_data['Costo_Unitario'],
                 "unidad_medicion": form.cleaned_data['UnidadMedicion']
             }
-            
-            resp = requests.post(API_INGREDIENTES, json=data)
+            # Incluir token de autenticación si existe en sesión
+            headers = {}
+            token = request.session.get('token')
+            if token:
+                headers['Authorization'] = f'Token {token}'
+
+            resp = requests.post(API_INGREDIENTES, json=data, headers=headers)
             
             if resp.status_code == 201:
                 messages.success(request, "Ingrediente creado correctamente")
@@ -38,7 +43,13 @@ def crear_ingrediente(request):
 
 
 def ver_ingredientes(request):
-    response = requests.get(API_INGREDIENTES)
+    # Incluir token para obtener solo los ingredientes del usuario
+    headers = {}
+    token = request.session.get('token')
+    if token:
+        headers['Authorization'] = f'Token {token}'
+
+    response = requests.get(API_INGREDIENTES, headers=headers)
     ingredientes = response.json() if response.status_code == 200 else []
 
     resp_u = requests.get(API_UNIDADES)
@@ -64,7 +75,12 @@ def ver_ingredientes(request):
 
 
 def eliminar_ingrediente(request, id):
-    requests.delete(f"{API_INGREDIENTES}{id}/")
+    headers = {}
+    token = request.session.get('token')
+    if token:
+        headers['Authorization'] = f'Token {token}'
+
+    requests.delete(f"{API_INGREDIENTES}{id}/", headers=headers)
     messages.success(request, "Ingrediente eliminado")
     return redirect('ver_ingredientes')
 
@@ -88,7 +104,7 @@ def editar_ingrediente(request, id):
         'UnidadMedicion': ingrediente.get('UnidadMedicion')
     }
     if isinstance(initial_data['UnidadMedicion'], dict):
-         initial_data['UnidadMedicion'] = initial_data['UnidadMedicion'].get('id')
+        initial_data['UnidadMedicion'] = initial_data['UnidadMedicion'].get('id')
 
     if request.method == "POST":
         form = IngredienteForm(request.POST, unidades_choices=choices)
@@ -99,8 +115,12 @@ def editar_ingrediente(request, id):
                 "costo_unitario": form.cleaned_data['Costo_Unitario'],
                 "unidad_medicion": form.cleaned_data['UnidadMedicion']
             }
-            
-            resp = requests.put(f"{API_INGREDIENTES}{id}/", json=data)
+            headers = {}
+            token = request.session.get('token')
+            if token:
+                headers['Authorization'] = f'Token {token}'
+
+            resp = requests.put(f"{API_INGREDIENTES}{id}/", json=data, headers=headers)
             
             if resp.status_code == 200:
                 messages.success(request, "Ingrediente actualizado")

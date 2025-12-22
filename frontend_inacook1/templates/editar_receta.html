@@ -94,6 +94,13 @@
     renderTabla();
 
     function renderTabla() {
+
+// Aviso al guardar: se eliminarán las relaciones existentes y se reemplazarán por las actuales
+document.getElementById('receta-form').addEventListener('submit', function(e) {
+    const ok = confirm('Al guardar los cambios se eliminarán las relaciones de ingredientes existentes y se crearán las nuevas. ¿Deseas continuar?');
+    if (!ok) e.preventDefault();
+});
+
         tablaBody.innerHTML = "";
 
         ingredientesReceta.forEach((ing, i) => {
@@ -135,16 +142,43 @@
 
         const peso_total = peso > 0 ? (peso * parseFloat(cantidad)) : null;
 
-        ingredientesLista.push({
-            id,
-            nombre: d.nombre,
-            cantidad,
-            peso: peso > 0 ? peso : null,
-            peso_total: peso_total,
-            unidad,
-            precio: d.precio,
-            calidad: d.calidad
-        });
+        // Validación: si unidad original del ingrediente difiere de la unidad seleccionada, pedir confirmación
+        const select = document.getElementById('ingrediente-select');
+        const selectedOption = select.selectedOptions[0];
+        const originalAbrev = selectedOption ? selectedOption.dataset.abrev : '';
+        if (originalAbrev && unidad && originalAbrev !== unidad) {
+            const ok = confirm(`Este ingrediente fue creado con la unidad de medida '${originalAbrev}'.\n¿Deseas agregarlo con la unidad '${unidad}' igualmente? (Aceptar = sí, Cancelar = no)`);
+            if (!ok) return;
+        }
+
+        // Si existe mismo ingrediente + misma unidad, sumamos cantidades
+        const existingIndex = ingredientesLista.findIndex(it => it.id == id && it.unidad == unidad);
+        if (existingIndex !== -1) {
+            const existing = ingredientesLista[existingIndex];
+            const newCantidad = parseFloat(existing.cantidad) + parseFloat(cantidad);
+            existing.cantidad = Number.isInteger(newCantidad) ? newCantidad : parseFloat(newCantidad.toFixed(2));
+            if (peso > 0) {
+                existing.peso = peso;
+                existing.peso_total = parseFloat((peso * existing.cantidad).toFixed(2));
+            } else {
+                if (existing.peso) {
+                    existing.peso_total = parseFloat((existing.peso * existing.cantidad).toFixed(2));
+                } else {
+                    existing.peso_total = null;
+                }
+            }
+        } else {
+            ingredientesLista.push({
+                id,
+                nombre: d.nombre,
+                cantidad,
+                peso: peso > 0 ? peso : null,
+                peso_total: peso_total,
+                unidad,
+                precio: d.precio,
+                calidad: d.calidad
+            });
+        }
 
         renderTabla();
     };

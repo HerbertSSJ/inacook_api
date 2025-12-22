@@ -29,14 +29,26 @@ from .serializers import (
 class ListaIngredientes(APIView):
 
     def get(self, request):
-        ingredientes=Ingrediente.objects.all()
+        # Filtrar ingredientes por usuario autenticado
+        if request.user.is_authenticated:
+            try:
+                usuario = Usuario.objects.get(user=request.user)
+                ingredientes = Ingrediente.objects.filter(usuario=usuario)
+            except Usuario.DoesNotExist:
+                ingredientes = Ingrediente.objects.none()
+        else:
+            ingredientes = Ingrediente.objects.none()
         serializer=IngredienteSerializer(ingredientes, many=True)
         return Response(serializer.data)
 
     def post(self, request):
         serializer=IngredienteSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            # Asignar automáticamente el usuario autenticado
+            usuario = None
+            if request.user.is_authenticated:
+                usuario, _ = Usuario.objects.get_or_create(user=request.user)
+            serializer.save(usuario=usuario)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -78,7 +90,15 @@ class DetalleIngrediente(APIView):
 class ListaReceta(APIView):
 
     def get(self, request):
-        recetas=Receta.objects.all()
+        # Filtrar recetas por usuario autenticado
+        if request.user.is_authenticated:
+            try:
+                usuario = Usuario.objects.get(user=request.user)
+                recetas = Receta.objects.filter(usuario=usuario)
+            except Usuario.DoesNotExist:
+                recetas = Receta.objects.none()
+        else:
+            recetas = Receta.objects.none()
         serializer=RecetaSerializer(recetas, many=True)
         return Response(serializer.data)
 
@@ -303,7 +323,15 @@ class DetalleComprobante(APIView):
 class ListaHistorial(APIView):
 
     def get(self, request):
-        historial=Historial.objects.all()
+        # Filtrar historial por usuario autenticado
+        if request.user.is_authenticated:
+            try:
+                usuario = Usuario.objects.get(user=request.user)
+                historial = Historial.objects.filter(usuario=usuario)
+            except Usuario.DoesNotExist:
+                historial = Historial.objects.none()
+        else:
+            historial = Historial.objects.none()
         serializer=HistorialSerializer(historial, many=True)
         return Response(serializer.data)
 

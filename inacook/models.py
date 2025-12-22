@@ -7,6 +7,13 @@ class Rol(models.Model):
     def __str__(self):
         return self.nombre
     
+    def save(self, *args, **kwargs):
+        if self.nombre:
+            nombre = self.nombre.strip()
+            if nombre:
+                self.nombre = nombre[0].upper() + nombre[1:]
+        super().save(*args, **kwargs)
+    
 class Usuario (models.Model):
     user=models.OneToOneField(User, on_delete=models.CASCADE)
     rol=models.ForeignKey(Rol, null=True, on_delete=models.SET_NULL)
@@ -21,14 +28,33 @@ class UnidadMedicion(models.Model):
     def __str__(self):
         return f"{self.nombre} ({self.abreviatura})"
 
+    def save(self, *args, **kwargs):
+        if self.nombre:
+            nombre = self.nombre.strip()
+            if nombre:
+                self.nombre = nombre[0].upper() + nombre[1:]
+        super().save(*args, **kwargs)
+
 class Ingrediente(models.Model):
     nombre=models.CharField(max_length=80)
     calidad=models.CharField(max_length=45)
     costo_unitario=models.IntegerField()
     unidad_medicion=models.ForeignKey(UnidadMedicion, null=True, on_delete=models.SET_NULL)
+    usuario=models.ForeignKey(Usuario, null=True, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.nombre
+    
+    def save(self, *args, **kwargs):
+        if self.nombre:
+            nombre = self.nombre.strip()
+            if nombre:
+                self.nombre = nombre[0].upper() + nombre[1:]
+        if self.calidad:
+            calidad = self.calidad.strip()
+            if calidad:
+                self.calidad = calidad[0].upper() + calidad[1:]
+        super().save(*args, **kwargs)
     
 class Receta(models.Model):
     nombre=models.CharField(max_length=100)
@@ -39,6 +65,17 @@ class Receta(models.Model):
 
     def __str__(self):
         return self.nombre
+
+    def save(self, *args, **kwargs):
+        if self.nombre:
+            nombre = self.nombre.strip()
+            if nombre:
+                self.nombre = nombre[0].upper() + nombre[1:]
+        if self.categoria:
+            categoria = self.categoria.strip()
+            if categoria:
+                self.categoria = categoria[0].upper() + categoria[1:]
+        super().save(*args, **kwargs)
         
 class Receta_Ingrediente(models.Model):
     receta=models.ForeignKey(Receta, on_delete=models.CASCADE)
@@ -58,7 +95,7 @@ class Comprobante(models.Model):
     fecha=models.DateField(null=True, blank=True)
 
     def __str__(self):
-        return f"comprobante #{self.id}"
+        return f"Comprobante #{self.id}"
         
 class Historial(models.Model):
     receta=models.ForeignKey(Receta, on_delete=models.CASCADE)
@@ -68,4 +105,4 @@ class Historial(models.Model):
     cambio_realizado=models.TextField(null=True, blank=True)
 
     def __str__(self):
-        return f"historial {self.id}"
+        return f"Historial {self.id}"
