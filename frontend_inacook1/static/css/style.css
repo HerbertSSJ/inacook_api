@@ -332,6 +332,14 @@ tr:hover {
     flex-wrap: wrap;
 }
 
+/* Form layout helpers for ingredient form */
+.form-section { margin-top: 10px; }
+.form-row { display:flex; gap:12px; margin-bottom:12px; align-items:flex-start; }
+.form-col { flex:1; display:flex; flex-direction:column; }
+.form-col.small { flex:0 0 220px; }
+.form-col label { font-weight:600; margin-bottom:6px; color:#f0f0f0; }
+.error-msg { color:#ff6b6b; margin:4px 0 0 0; font-size:0.9rem; }
+
 .filtro-item {
     display: flex;
     flex-direction: column;

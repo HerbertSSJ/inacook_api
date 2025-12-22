@@ -39,6 +39,7 @@ class Ingrediente(models.Model):
     nombre=models.CharField(max_length=80)
     calidad=models.CharField(max_length=45)
     costo_unitario=models.IntegerField()
+    peso=models.FloatField(null=True, blank=True, default=0.0)
     unidad_medicion=models.ForeignKey(UnidadMedicion, null=True, on_delete=models.SET_NULL)
     usuario=models.ForeignKey(Usuario, null=True, on_delete=models.CASCADE)
 

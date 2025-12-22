@@ -12,7 +12,11 @@ class Command(BaseCommand):
         username = os.environ.get('ADMIN_USERNAME')
         email = os.environ.get('ADMIN_EMAIL', '')
         password = os.environ.get('ADMIN_PASSWORD')
-        role_name = os.environ.get('ADMIN_ROLE_NAME', 'Admin')
+        role_name = os.environ.get('ADMIN_ROLE_NAME', 'Profesor')
+
+        # If someone passes 'admin', map it to 'Profesor' so admin sees professor view
+        if role_name and role_name.strip().lower() == 'admin':
+            role_name = 'Profesor'
 
         if not username or not password:
             self.stdout.write(self.style.ERROR('Faltan variables: define ADMIN_USERNAME y ADMIN_PASSWORD.'))

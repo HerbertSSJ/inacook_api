@@ -82,7 +82,7 @@ WSGI_APPLICATION = 'inacook_api.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'inacook_api',
+        'NAME': 'inacook_api3',
         'USER': 'root',
         'PASSWORD': 'QweAsd12345.',
         'HOST': 'localhost',

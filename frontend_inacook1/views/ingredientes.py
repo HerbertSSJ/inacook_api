@@ -21,6 +21,7 @@ def crear_ingrediente(request):
                 "nombre": form.cleaned_data['Nombre_Ingrediente'],
                 "calidad": form.cleaned_data['Calidad'],
                 "costo_unitario": form.cleaned_data['Costo_Unitario'],
+                "peso": form.cleaned_data.get('Peso') or 0.0,
                 "unidad_medicion": form.cleaned_data['UnidadMedicion']
             }
         
@@ -101,6 +102,7 @@ def editar_ingrediente(request, id):
         'Nombre_Ingrediente': ingrediente.get('Nombre_Ingrediente', ingrediente.get('nombre')),
         'Calidad': ingrediente.get('Calidad', ingrediente.get('calidad')),
         'Costo_Unitario': ingrediente.get('Costo_Unitario', ingrediente.get('costo_unitario')),
+        'Peso': ingrediente.get('peso', ingrediente.get('Peso', 0.0)),
         'UnidadMedicion': ingrediente.get('UnidadMedicion')
     }
     if isinstance(initial_data['UnidadMedicion'], dict):
@@ -113,7 +115,8 @@ def editar_ingrediente(request, id):
                 "nombre": form.cleaned_data['Nombre_Ingrediente'],
                 "calidad": form.cleaned_data['Calidad'],
                 "costo_unitario": form.cleaned_data['Costo_Unitario'],
-                "unidad_medicion": form.cleaned_data['UnidadMedicion']
+                    "peso": form.cleaned_data.get('Peso') or 0.0,
+                    "unidad_medicion": form.cleaned_data['UnidadMedicion']
             }
             headers = {}
             token = request.session.get('token')

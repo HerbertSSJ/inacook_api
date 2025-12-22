@@ -13,6 +13,7 @@ class IngredienteForm(forms.Form):
     Nombre_Ingrediente = forms.CharField(label="Nombre del Ingrediente", max_length=100, widget=forms.TextInput(attrs={'class': 'form-control'}))
     Calidad = forms.CharField(label="Calidad", max_length=100, widget=forms.TextInput(attrs={'class': 'form-control'}))
     Costo_Unitario = forms.IntegerField(label="Costo Unitario", widget=forms.NumberInput(attrs={'class': 'form-control'}))
+    Peso = forms.FloatField(label="peso", required=False, widget=forms.NumberInput(attrs={'class': 'form-control', 'step': 'any'}))
     UnidadMedicion = forms.ChoiceField(label="Unidad de Medición", widget=forms.Select(attrs={'class': 'form-select'}))
 
     def __init__(self, *args, **kwargs):
