@@ -8,13 +8,13 @@ API_USUARIOS = "http://127.0.0.1:8000/api/usuarios/"
 from django.utils.dateparse import parse_datetime
 
 def ver_historial(request):
-    # Incluir token para determinar rol y permisos
+    
     headers = {}
     token = request.session.get('token')
     if token:
         headers['Authorization'] = f'Token {token}'
 
-    # Obtener usuarios (para que profesores puedan filtrar por alumno)
+    
     usuarios = []
     try:
         resp_users = requests.get(API_USUARIOS, headers=headers)
@@ -22,7 +22,7 @@ def ver_historial(request):
     except Exception:
         usuarios = []
 
-    # Construir query param si viene usuario_id
+    
     params = {}
     usuario_id = request.GET.get('usuario_id')
     if usuario_id:
@@ -44,7 +44,6 @@ def ver_historial(request):
         historial = []
         messages.error(request, "No se pudo cargar el historial")
 
-    # Determinar si el usuario autenticado es profesor/admin para mostrar selector
     current_user_id = request.session.get('user_id')
     is_profesor = False
     try:
@@ -55,7 +54,7 @@ def ver_historial(request):
     except Exception:
         is_profesor = False
 
-    # Preparar lista de alumnos para selector
+    
     alumnos = []
     for u in usuarios:
         rol = (u.get('nombre_rol') or '').lower()

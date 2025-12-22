@@ -130,7 +130,7 @@
 
     let ingredientesLista = [];
 
-    // --- Buscador de ingredientes ---
+    
     const ingredienteSearch = document.getElementById('ingrediente-search');
     const ingredienteResults = document.getElementById('ingrediente-results');
 
@@ -165,7 +165,7 @@
                 selectIngrediente.value = li.dataset.value;
                 ingredienteSearch.value = li.textContent;
                 ingredienteResults.innerHTML = '';
-                // If the select was hidden, keep it hidden; selection sufficient for logic
+                
             };
             list.appendChild(li);
         });
@@ -241,22 +241,22 @@
 
         const peso_total = peso > 0 ? (peso * cantidad) : null;
 
-        // Validación: si unidad original del ingrediente difiere de la unidad seleccionada, pedir confirmación
+        
         const originalAbrev = selectedOption.dataset.abrev || '';
         if (originalAbrev && unidad && originalAbrev !== unidad) {
             const ok = confirm(`Este ingrediente fue creado con la unidad de medida '${originalAbrev}'.\n¿Deseas agregarlo con la unidad '${unidad}' igualmente? (Aceptar = sí, Cancelar = no)`);
             if (!ok) {
-                return; // no agregar
+                return; 
             }
         }
 
-        // Si ya existe el mismo ingrediente con la misma unidad, sumar cantidades
+        
         const existingIndex = ingredientesLista.findIndex(it => it.id == id && it.unidad == unidad);
         if (existingIndex !== -1) {
             const existing = ingredientesLista[existingIndex];
             const newCantidad = parseFloat(existing.cantidad) + parseFloat(cantidad);
             existing.cantidad = Number.isInteger(newCantidad) ? newCantidad : parseFloat(newCantidad.toFixed(2));
-            // actualizar peso por unidad si se proporcionó
+            
             if (peso > 0) {
                 existing.peso = peso;
                 existing.peso_total = parseFloat((peso * existing.cantidad).toFixed(2));

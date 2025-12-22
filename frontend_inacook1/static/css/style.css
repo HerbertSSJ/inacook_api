@@ -157,7 +157,7 @@ button:hover,
     color: white !important;
 }
 
-/* Botones pequeños para la tabla */
+
 .tabla-recetas .btn-sm {
     padding: 4px 10px !important;
     font-size: 0.85rem !important;
@@ -165,7 +165,7 @@ button:hover,
     border-radius: 18px !important;
 }
 
-/* Estilo compacto y sin fondo para los botones "Ver" en la tabla de recetas */
+
 .acciones-td .btn-secondary.btn-sm {
     padding: 2px 8px !important;
     font-size: 0.78rem !important;
@@ -183,7 +183,7 @@ button:hover,
     border-color: rgba(255,77,77,0.45) !important;
 }
 
-/* Asegurar que en la celda de acciones los botones queden en una fila */
+
 .tabla-recetas td.table-actions,
 .tabla-recetas td.table-actions .table-actions {
     white-space: nowrap;
@@ -558,7 +558,7 @@ tr:hover {
     gap: 20px;
 }
 
-/* Alinear inputs en el formulario de crear/editar ingrediente: cada label encima de su input */
+
 .crear-ingrediente-container .form-section {
     display: flex;
     flex-direction: column;

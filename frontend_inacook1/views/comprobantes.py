@@ -9,7 +9,7 @@ API_INGREDIENTES = "http://127.0.0.1:8000/api/ingredientes/"
 API_UNIDADES = "http://127.0.0.1:8000/api/unidades/"
 
 def ver_comprobante(request, id):
-    # Incluir token si está en sesión para obtener datos del usuario
+    
     headers = {}
     token = request.session.get('token')
     if token:

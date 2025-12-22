@@ -23,7 +23,7 @@ def crear_ingrediente(request):
                 "costo_unitario": form.cleaned_data['Costo_Unitario'],
                 "unidad_medicion": form.cleaned_data['UnidadMedicion']
             }
-            # Incluir token de autenticación si existe en sesión
+        
             headers = {}
             token = request.session.get('token')
             if token:
@@ -43,7 +43,7 @@ def crear_ingrediente(request):
 
 
 def ver_ingredientes(request):
-    # Incluir token para obtener solo los ingredientes del usuario
+    
     headers = {}
     token = request.session.get('token')
     if token:

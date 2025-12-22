@@ -33,7 +33,7 @@ class Command(BaseCommand):
                 user.is_staff = True
                 user.is_superuser = True
                 updated = True
-            # Actualizar contraseña si es distinta (siempre la seteamos para sincronizar)
+            
             user.set_password(password)
             user.save()
             if updated:
@@ -41,12 +41,12 @@ class Command(BaseCommand):
             else:
                 self.stdout.write(self.style.WARNING(f"Usuario '{username}' ya existía. Contraseña actualizada."))
 
-        # Rol
+        
         rol, rol_created = Rol.objects.get_or_create(nombre=role_name)
         if rol_created:
             self.stdout.write(self.style.SUCCESS(f"Rol '{role_name}' creado."))
 
-        # Perfil Usuario
+        
         perfil, perfil_created = Usuario.objects.get_or_create(user=user, defaults={'rol': rol})
         if not perfil_created and perfil.rol != rol:
             perfil.rol = rol

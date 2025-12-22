@@ -58,7 +58,7 @@
 
     <script>
         (function(){
-            // Lista de alumnos provista desde el servidor
+            
             const alumnos = [
                 {% for a in alumnos %}
                 { id: '{{ a.id }}', username: '{{ a.username }}' }{% if not forloop.last %},{% endif %}
@@ -112,7 +112,7 @@
                 if (!results.contains(e.target) && e.target !== search) results.innerHTML = '';
             });
 
-            // Si ya hay un usuario seleccionado, mostrar su nombre inicialmente
+            
             const pre = hidden.value;
             if (pre){
                 const found = alumnos.find(a => a.id === pre || a.id === String(pre));

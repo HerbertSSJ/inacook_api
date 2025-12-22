@@ -95,7 +95,7 @@
     const tablaBody = document.querySelector("#ingredientes-table tbody");
     const ingredientesJson = document.getElementById("ingredientes-json");
 
-    // Buscador de ingredientes
+    
     const selectIngrediente = document.getElementById('ingrediente-select');
     const ingredienteSearch = document.getElementById('ingrediente-search');
     const ingredienteResults = document.getElementById('ingrediente-results');
@@ -146,7 +146,7 @@
 
     renderTabla();
 
-    // Preview de imagen al seleccionar un archivo nuevo
+    
     (function() {
         const form = document.getElementById('receta-form');
         if (!form) return;
@@ -173,7 +173,7 @@
 
     function renderTabla() {
 
-// Aviso al guardar: se eliminarán las relaciones existentes y se reemplazarán por las actuales
+
 document.getElementById('receta-form').addEventListener('submit', function(e) {
     const ok = confirm('Al guardar los cambios se eliminarán las relaciones de ingredientes existentes y se crearán las nuevas. ¿Deseas continuar?');
     if (!ok) e.preventDefault();
@@ -220,7 +220,7 @@ document.getElementById('receta-form').addEventListener('submit', function(e) {
 
         const peso_total = peso > 0 ? (peso * parseFloat(cantidad)) : null;
 
-        // Validación: si unidad original del ingrediente difiere de la unidad seleccionada, pedir confirmación
+    
         const select = document.getElementById('ingrediente-select');
         const selectedOption = select.selectedOptions[0];
         const originalAbrev = selectedOption ? selectedOption.dataset.abrev : '';
@@ -229,7 +229,7 @@ document.getElementById('receta-form').addEventListener('submit', function(e) {
             if (!ok) return;
         }
 
-        // Si existe mismo ingrediente + misma unidad, sumamos cantidades
+    
         const existingIndex = ingredientesLista.findIndex(it => it.id == id && it.unidad == unidad);
         if (existingIndex !== -1) {
             const existing = ingredientesLista[existingIndex];

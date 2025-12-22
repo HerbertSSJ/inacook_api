@@ -224,7 +224,7 @@ def editar_receta(request, id):
                 "asignatura": form.cleaned_data.get('Asignatura')
             }
             
-            # Si se subió una nueva imagen, enviarla en multipart/form-data
+            
             files = {}
             if request.FILES.get('imagen'):
                 files['imagen'] = request.FILES['imagen']
@@ -233,7 +233,7 @@ def editar_receta(request, id):
                 try:
                     requests.put(f"{API_RECETAS}{id}/", data=data, files=files, headers=headers)
                 except Exception:
-                    # Intentar igualmente con json si PUT multipart falla
+                    
                     requests.put(f"{API_RECETAS}{id}/", json=data, headers=headers)
             else:
                 requests.put(f"{API_RECETAS}{id}/", json=data, headers=headers)

@@ -30,8 +30,7 @@ from .serializers import (
 class ListaIngredientes(APIView):
 
     def get(self, request):
-        # Filtrar ingredientes: por defecto por el usuario autenticado.
-        # Si el usuario autenticado tiene rol Profesor/Admin puede consultar otros usuarios
+        
         ingredientes = Ingrediente.objects.none()
         if not request.user.is_authenticated:
             ingredientes = Ingrediente.objects.none()
@@ -45,7 +44,7 @@ class ListaIngredientes(APIView):
             if usuario_actual and usuario_actual.rol:
                 rol_nombre = (usuario_actual.rol.nombre or '').lower()
 
-            # Si es profesor/admin, permitir pasar ?usuario_id=... para ver los items de ese alumno
+            
             if rol_nombre in ('profesor', 'profesora', 'teacher', 'admin', 'administrador', 'administrator'):
                 usuario_id = request.query_params.get('usuario_id')
                 if usuario_id:
@@ -57,7 +56,7 @@ class ListaIngredientes(APIView):
                 else:
                     ingredientes = Ingrediente.objects.all()
             else:
-                # usuario normal: ver solo sus ingredientes
+                
                 if usuario_actual:
                     ingredientes = Ingrediente.objects.filter(usuario=usuario_actual)
                 else:
@@ -68,7 +67,7 @@ class ListaIngredientes(APIView):
     def post(self, request):
         serializer=IngredienteSerializer(data=request.data)
         if serializer.is_valid():
-            # Asignar automáticamente el usuario autenticado
+            
             usuario = None
             if request.user.is_authenticated:
                 usuario, _ = Usuario.objects.get_or_create(user=request.user)
@@ -115,8 +114,8 @@ class ListaReceta(APIView):
     parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
 
     def get(self, request):
-        # Filtrar recetas: por defecto por el usuario autenticado.
-        # Si el usuario autenticado tiene rol Profesor/Admin puede consultar otros usuarios
+    
+    
         recetas = Receta.objects.none()
         if not request.user.is_authenticated:
             recetas = Receta.objects.none()
@@ -130,7 +129,7 @@ class ListaReceta(APIView):
             if usuario_actual and usuario_actual.rol:
                 rol_nombre = (usuario_actual.rol.nombre or '').lower()
 
-            # Si es profesor/admin, permitir pasar ?usuario_id=... para ver las recetas de ese alumno
+            
             if rol_nombre in ('profesor', 'profesora', 'teacher', 'admin', 'administrador', 'administrator'):
                 usuario_id = request.query_params.get('usuario_id')
                 if usuario_id:
@@ -142,7 +141,7 @@ class ListaReceta(APIView):
                 else:
                     recetas = Receta.objects.all()
             else:
-                # usuario normal: ver solo sus recetas
+                
                 if usuario_actual:
                     recetas = Receta.objects.filter(usuario=usuario_actual)
                 else:
@@ -372,8 +371,7 @@ class DetalleComprobante(APIView):
 class ListaHistorial(APIView):
 
     def get(self, request):
-        # Filtrar historial: por defecto, mostrar historial del usuario autenticado.
-        # Si el usuario autenticado es Profesor/Admin puede pasar ?usuario_id=... para ver el historial de ese alumno
+        
         historial = Historial.objects.none()
         if not request.user.is_authenticated:
             historial = Historial.objects.none()
@@ -396,10 +394,10 @@ class ListaHistorial(APIView):
                     except Usuario.DoesNotExist:
                         historial = Historial.objects.none()
                 else:
-                    # profesor/admin ve todo el historial
+                    
                     historial = Historial.objects.all()
             else:
-                # usuario normal ve solo su historial
+                
                 if usuario_actual:
                     historial = Historial.objects.filter(usuario=usuario_actual)
                 else:
@@ -472,7 +470,7 @@ class ListaUsuario(APIView):
 
             user = User.objects.create_user(username=username, password=password, email=email)
 
-            # Si el rol corresponde a Profesor, marcar como staff/superuser
+            
             try:
                 if rol_id is not None:
                     rol_obj = Rol.objects.filter(id=rol_id).first()
