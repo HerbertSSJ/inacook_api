@@ -558,6 +558,43 @@ tr:hover {
     gap: 20px;
 }
 
+/* Alinear inputs en el formulario de crear/editar ingrediente: cada label encima de su input */
+.crear-ingrediente-container .form-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.crear-ingrediente-container .form-section label {
+    display: block;
+    margin-bottom: 6px;
+    color: #ff4d4d;
+    font-weight: 600;
+}
+
+.crear-ingrediente-container .form-section input,
+.crear-ingrediente-container .form-section select,
+.crear-ingrediente-container .form-section .form-control,
+.crear-ingrediente-container .form-section .form-select {
+    display: block;
+    width: 100%;
+    max-width: 420px;
+}
+
+.crear-ingrediente-container .form-section .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.crear-ingrediente-container .form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-start;
+}
+
 .full-width {
     width: 100%;
 }

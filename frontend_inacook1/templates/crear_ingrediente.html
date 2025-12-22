@@ -12,30 +12,37 @@
         {% csrf_token %}
 
         <div class="form-section">
+            <div class="field">
+                <label>Nombre del Ingrediente:</label>
+                {{ form.Nombre_Ingrediente }}
+                {% for error in form.Nombre_Ingrediente.errors %}
+                <p class="error-msg">{{ error }}</p>
+                {% endfor %}
+            </div>
 
-            <label>Nombre del Ingrediente:</label>
-            {{ form.Nombre_Ingrediente }}
-            {% for error in form.Nombre_Ingrediente.errors %}
-            <p class="error-msg">{{ error }}</p>
-            {% endfor %}
+            <div class="field">
+                <label>Calidad:</label>
+                {{ form.Calidad }}
+                {% for error in form.Calidad.errors %}
+                <p class="error-msg">{{ error }}</p>
+                {% endfor %}
+            </div>
 
-            <label>Calidad:</label>
-            {{ form.Calidad }}
-            {% for error in form.Calidad.errors %}
-            <p class="error-msg">{{ error }}</p>
-            {% endfor %}
+            <div class="field">
+                <label>Costo Unitario:</label>
+                {{ form.Costo_Unitario }}
+                {% for error in form.Costo_Unitario.errors %}
+                <p class="error-msg">{{ error }}</p>
+                {% endfor %}
+            </div>
 
-            <label>Costo Unitario:</label>
-            {{ form.Costo_Unitario }}
-            {% for error in form.Costo_Unitario.errors %}
-            <p class="error-msg">{{ error }}</p>
-            {% endfor %}
-
-            <label>Unidad de Medición:</label>
-            {{ form.UnidadMedicion }}
-            {% for error in form.UnidadMedicion.errors %}
-            <p class="error-msg">{{ error }}</p>
-            {% endfor %}
+            <div class="field">
+                <label>Unidad de Medición:</label>
+                {{ form.UnidadMedicion }}
+                {% for error in form.UnidadMedicion.errors %}
+                <p class="error-msg">{{ error }}</p>
+                {% endfor %}
+            </div>
 
             {% if form.non_field_errors %}
             <div class="error-msg">
