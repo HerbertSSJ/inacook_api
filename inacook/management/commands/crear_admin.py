@@ -1,5 +1,7 @@
 import os
 from django.core.management.base import BaseCommand
+from django.conf import settings
+import traceback
 from django.contrib.auth import get_user_model
 
 from inacook.models import Usuario, Rol
@@ -9,10 +11,22 @@ class Command(BaseCommand):
     help = 'Crea un superusuario y su perfil `Usuario` leyendo ADMIN_* desde variables de entorno.'
 
     def handle(self, *args, **options):
-        username = os.environ.get('ADMIN_USERNAME')
-        email = os.environ.get('ADMIN_EMAIL', '')
-        password = os.environ.get('ADMIN_PASSWORD')
-        role_name = os.environ.get('ADMIN_ROLE_NAME', 'Profesor')
+        try:
+            # Diagnostic info: environment and settings
+            username = os.environ.get('ADMIN_USERNAME')
+            email = os.environ.get('ADMIN_EMAIL', '')
+            password = os.environ.get('ADMIN_PASSWORD')
+            role_name = os.environ.get('ADMIN_ROLE_NAME', 'Profesor')
+
+            # Print brief diagnostics so the caller sees what happens
+            masked_pw = None if not password else f"*" * min(6, len(password))
+            self.stdout.write(f"DEBUG: cwd={os.getcwd()}")
+            self.stdout.write(f"DEBUG: DJANGO_SETTINGS_MODULE={os.environ.get('DJANGO_SETTINGS_MODULE') or getattr(settings, '__name__', '<no-settings>')}")
+            self.stdout.write(f"DEBUG: ADMIN_USERNAME={'SET' if username else 'MISSING'} ADMIN_EMAIL={'SET' if email else 'MISSING'} ADMIN_PASSWORD={'SET' if password else 'MISSING'} length={'0' if not password else str(len(password))}")
+
+            if not username or not password:
+                self.stdout.write(self.style.ERROR('Faltan variables: define ADMIN_USERNAME y ADMIN_PASSWORD.'))
+                return
 
         # If someone passes 'admin', map it to 'Profesor' so admin sees professor view
         if role_name and role_name.strip().lower() == 'admin':
@@ -59,4 +73,7 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.SUCCESS(f"Perfil `Usuario` creado o ya existente con rol '{role_name}'."))
 
-        self.stdout.write(self.style.SUCCESS('Operación completada.'))
+            self.stdout.write(self.style.SUCCESS('Operación completada.'))
+        except Exception:
+            self.stderr.write('ERROR: excepción durante crear_admin:')
+            self.stderr.write(traceback.format_exc())
