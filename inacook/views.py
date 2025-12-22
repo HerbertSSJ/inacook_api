@@ -1,4 +1,5 @@
 from rest_framework.views import APIView
+from rest_framework import parsers
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth.models import User
@@ -29,15 +30,38 @@ from .serializers import (
 class ListaIngredientes(APIView):
 
     def get(self, request):
-        # Filtrar ingredientes por usuario autenticado
-        if request.user.is_authenticated:
-            try:
-                usuario = Usuario.objects.get(user=request.user)
-                ingredientes = Ingrediente.objects.filter(usuario=usuario)
-            except Usuario.DoesNotExist:
-                ingredientes = Ingrediente.objects.none()
-        else:
+        # Filtrar ingredientes: por defecto por el usuario autenticado.
+        # Si el usuario autenticado tiene rol Profesor/Admin puede consultar otros usuarios
+        ingredientes = Ingrediente.objects.none()
+        if not request.user.is_authenticated:
             ingredientes = Ingrediente.objects.none()
+        else:
+            try:
+                usuario_actual = Usuario.objects.get(user=request.user)
+            except Usuario.DoesNotExist:
+                usuario_actual = None
+
+            rol_nombre = ''
+            if usuario_actual and usuario_actual.rol:
+                rol_nombre = (usuario_actual.rol.nombre or '').lower()
+
+            # Si es profesor/admin, permitir pasar ?usuario_id=... para ver los items de ese alumno
+            if rol_nombre in ('profesor', 'profesora', 'teacher', 'admin', 'administrador', 'administrator'):
+                usuario_id = request.query_params.get('usuario_id')
+                if usuario_id:
+                    try:
+                        target = Usuario.objects.get(id=usuario_id)
+                        ingredientes = Ingrediente.objects.filter(usuario=target)
+                    except Usuario.DoesNotExist:
+                        ingredientes = Ingrediente.objects.none()
+                else:
+                    ingredientes = Ingrediente.objects.all()
+            else:
+                # usuario normal: ver solo sus ingredientes
+                if usuario_actual:
+                    ingredientes = Ingrediente.objects.filter(usuario=usuario_actual)
+                else:
+                    ingredientes = Ingrediente.objects.none()
         serializer=IngredienteSerializer(ingredientes, many=True)
         return Response(serializer.data)
 
@@ -88,17 +112,41 @@ class DetalleIngrediente(APIView):
         return Response({"mensaje": "Ingrediente eliminado"}, status=204)
 
 class ListaReceta(APIView):
+    parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
 
     def get(self, request):
-        # Filtrar recetas por usuario autenticado
-        if request.user.is_authenticated:
-            try:
-                usuario = Usuario.objects.get(user=request.user)
-                recetas = Receta.objects.filter(usuario=usuario)
-            except Usuario.DoesNotExist:
-                recetas = Receta.objects.none()
-        else:
+        # Filtrar recetas: por defecto por el usuario autenticado.
+        # Si el usuario autenticado tiene rol Profesor/Admin puede consultar otros usuarios
+        recetas = Receta.objects.none()
+        if not request.user.is_authenticated:
             recetas = Receta.objects.none()
+        else:
+            try:
+                usuario_actual = Usuario.objects.get(user=request.user)
+            except Usuario.DoesNotExist:
+                usuario_actual = None
+
+            rol_nombre = ''
+            if usuario_actual and usuario_actual.rol:
+                rol_nombre = (usuario_actual.rol.nombre or '').lower()
+
+            # Si es profesor/admin, permitir pasar ?usuario_id=... para ver las recetas de ese alumno
+            if rol_nombre in ('profesor', 'profesora', 'teacher', 'admin', 'administrador', 'administrator'):
+                usuario_id = request.query_params.get('usuario_id')
+                if usuario_id:
+                    try:
+                        target = Usuario.objects.get(id=usuario_id)
+                        recetas = Receta.objects.filter(usuario=target)
+                    except Usuario.DoesNotExist:
+                        recetas = Receta.objects.none()
+                else:
+                    recetas = Receta.objects.all()
+            else:
+                # usuario normal: ver solo sus recetas
+                if usuario_actual:
+                    recetas = Receta.objects.filter(usuario=usuario_actual)
+                else:
+                    recetas = Receta.objects.none()
         serializer=RecetaSerializer(recetas, many=True)
         return Response(serializer.data)
 
@@ -125,6 +173,7 @@ class ListaReceta(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class DetalleReceta(APIView):
+    parser_classes = (parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser)
 
     def get_object(self, id):
         try:
@@ -323,15 +372,38 @@ class DetalleComprobante(APIView):
 class ListaHistorial(APIView):
 
     def get(self, request):
-        # Filtrar historial por usuario autenticado
-        if request.user.is_authenticated:
-            try:
-                usuario = Usuario.objects.get(user=request.user)
-                historial = Historial.objects.filter(usuario=usuario)
-            except Usuario.DoesNotExist:
-                historial = Historial.objects.none()
-        else:
+        # Filtrar historial: por defecto, mostrar historial del usuario autenticado.
+        # Si el usuario autenticado es Profesor/Admin puede pasar ?usuario_id=... para ver el historial de ese alumno
+        historial = Historial.objects.none()
+        if not request.user.is_authenticated:
             historial = Historial.objects.none()
+        else:
+            try:
+                usuario_actual = Usuario.objects.get(user=request.user)
+            except Usuario.DoesNotExist:
+                usuario_actual = None
+
+            rol_nombre = ''
+            if usuario_actual and usuario_actual.rol:
+                rol_nombre = (usuario_actual.rol.nombre or '').lower()
+
+            if rol_nombre in ('profesor', 'profesora', 'teacher', 'admin', 'administrador', 'administrator'):
+                usuario_id = request.query_params.get('usuario_id')
+                if usuario_id:
+                    try:
+                        target = Usuario.objects.get(id=usuario_id)
+                        historial = Historial.objects.filter(usuario=target)
+                    except Usuario.DoesNotExist:
+                        historial = Historial.objects.none()
+                else:
+                    # profesor/admin ve todo el historial
+                    historial = Historial.objects.all()
+            else:
+                # usuario normal ve solo su historial
+                if usuario_actual:
+                    historial = Historial.objects.filter(usuario=usuario_actual)
+                else:
+                    historial = Historial.objects.none()
         serializer=HistorialSerializer(historial, many=True)
         return Response(serializer.data)
 

@@ -12,6 +12,8 @@
         <p><strong>Receta:</strong> {{ receta.nombre }}</p>
         <p><strong>Categoría:</strong> {{ receta.categoria }}</p>
         <p><strong>Tiempo de preparación:</strong> {{ receta.tiempo_preparacion }}</p>
+        <p><strong>Sección:</strong> {% if seccion %}{{ seccion }}{% else %}-{% endif %}</p>
+        <p><strong>Asignatura:</strong> {% if asignatura %}{{ asignatura }}{% else %}-{% endif %}</p>
     </div>
 
     <hr>

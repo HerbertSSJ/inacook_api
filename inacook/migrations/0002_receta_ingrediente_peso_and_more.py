@@ -1,4 +1,5 @@
 from django.db import migrations, models
+import django.db.models.deletion
 
 
 def create_default_roles(apps, schema_editor):
@@ -30,6 +31,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # Receta_Ingrediente: peso y peso_total
         migrations.AddField(
             model_name='receta_ingrediente',
             name='peso',
@@ -40,6 +42,34 @@ class Migration(migrations.Migration):
             name='peso_total',
             field=models.FloatField(blank=True, default=0.0, null=True),
         ),
+
+        # Ingrediente: usuario FK
+        migrations.AddField(
+            model_name='ingrediente',
+            name='usuario',
+            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to='inacook.usuario'),
+        ),
+
+        # Receta: seccion y asignatura
+        migrations.AddField(
+            model_name='receta',
+            name='seccion',
+            field=models.CharField(max_length=100, null=True, blank=True),
+        ),
+        migrations.AddField(
+            model_name='receta',
+            name='asignatura',
+            field=models.CharField(max_length=100, null=True, blank=True),
+        ),
+
+        # Receta: imagen
+        migrations.AddField(
+            model_name='receta',
+            name='imagen',
+            field=models.ImageField(blank=True, null=True, upload_to='recetas/'),
+        ),
+
+        # RunPython: seed roles and unidades
         migrations.RunPython(create_default_roles, noop),
         migrations.RunPython(create_default_unidades, noop),
     ]

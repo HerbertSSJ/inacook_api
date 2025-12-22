@@ -59,8 +59,11 @@ class Ingrediente(models.Model):
 class Receta(models.Model):
     nombre=models.CharField(max_length=100)
     categoria=models.CharField(max_length=45)
+    imagen = models.ImageField(upload_to='recetas/', null=True, blank=True)
     aporte_calorico=models.IntegerField(null=True, blank=True)
     tiempo_preparacion=models.IntegerField(null=True, blank=True)
+    seccion = models.CharField(max_length=100, null=True, blank=True)
+    asignatura = models.CharField(max_length=100, null=True, blank=True)
     usuario=models.ForeignKey(Usuario, null=True, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -75,6 +78,14 @@ class Receta(models.Model):
             categoria = self.categoria.strip()
             if categoria:
                 self.categoria = categoria[0].upper() + categoria[1:]
+        if self.seccion:
+            s = self.seccion.strip()
+            if s:
+                self.seccion = s[0].upper() + s[1:]
+        if self.asignatura:
+            a = self.asignatura.strip()
+            if a:
+                self.asignatura = a[0].upper() + a[1:]
         super().save(*args, **kwargs)
         
 class Receta_Ingrediente(models.Model):

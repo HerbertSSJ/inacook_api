@@ -207,6 +207,8 @@ def editar_receta(request, id):
         'Categoria': receta.get('Categoria', receta.get('categoria')),
         'Aporte_Calorico': receta.get('Aporte_Calorico', receta.get('aporte_calorico')),
         'Tiempo_Preparacion': receta.get('Tiempo_Preparacion', receta.get('tiempo_preparacion')),
+        'Seccion': receta.get('seccion', receta.get('Seccion')),
+        'Asignatura': receta.get('asignatura', receta.get('Asignatura')),
     }
 
     if request.method == "POST":
@@ -222,7 +224,19 @@ def editar_receta(request, id):
                 "asignatura": form.cleaned_data.get('Asignatura')
             }
             
-            requests.put(f"{API_RECETAS}{id}/", json=data, headers=headers)
+            # Si se subió una nueva imagen, enviarla en multipart/form-data
+            files = {}
+            if request.FILES.get('imagen'):
+                files['imagen'] = request.FILES['imagen']
+
+            if files:
+                try:
+                    requests.put(f"{API_RECETAS}{id}/", data=data, files=files, headers=headers)
+                except Exception:
+                    # Intentar igualmente con json si PUT multipart falla
+                    requests.put(f"{API_RECETAS}{id}/", json=data, headers=headers)
+            else:
+                requests.put(f"{API_RECETAS}{id}/", json=data, headers=headers)
             
             ingredientes_json = request.POST.get('ingredientes_json')
             if ingredientes_json:
@@ -470,6 +484,8 @@ def ver_recetas_alumnos(request):
     
     buscar = request.GET.get('buscar', '').strip().lower()
     categoria_filtro = request.GET.get('categoria')
+    seccion_filtro = request.GET.get('seccion')
+    asignatura_filtro = request.GET.get('asignatura')
     if categoria_filtro:
         categoria_filtro = categoria_filtro.strip()
         if categoria_filtro.lower() == 'todas':
@@ -490,6 +506,18 @@ def ver_recetas_alumnos(request):
         
         if buscar and buscar not in r.get('nombre', '').lower():
             continue
+
+        if seccion_filtro:
+            sf = seccion_filtro.strip().lower()
+            r_seccion = (r.get('seccion') or r.get('Seccion') or '').strip().lower()
+            if sf and sf not in r_seccion:
+                continue
+
+        if asignatura_filtro:
+            af = asignatura_filtro.strip().lower()
+            r_asig = (r.get('asignatura') or r.get('Asignatura') or '').strip().lower()
+            if af and af not in r_asig:
+                continue
 
         
         if categoria_filtro and (not r.get('categoria') or r.get('categoria', '').strip().lower() != categoria_filtro):
@@ -557,6 +585,8 @@ def ver_recetas_alumnos(request):
             'nombre': nombre,
             'categoria': categoria,
             'tiempo': tiempo,
+            'seccion': r.get('seccion') or r.get('Seccion') or '',
+            'asignatura': r.get('asignatura') or r.get('Asignatura') or '',
             'precio_subtotal': round(subtotal, 2) if subtotal > 0 else "No calculado",
             'precio': total_con_iva if subtotal > 0 else "No calculado",
             'usuario': user_dict.get(r['usuario'], 'Desconocido')

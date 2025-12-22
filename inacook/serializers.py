@@ -34,6 +34,7 @@ class UnidadMedicionSerializer(serializers.ModelSerializer):
 
 
 class IngredienteSerializer(serializers.ModelSerializer):
+    usuario_nombre = serializers.CharField(source='usuario.user.username', read_only=True)
     class Meta:
         model = Ingrediente
         fields = '__all__'
@@ -45,6 +46,9 @@ class RecetaIngredienteSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class RecetaSerializer(serializers.ModelSerializer):
+    usuario_nombre = serializers.CharField(source='usuario.user.username', read_only=True)
+    imagen = serializers.ImageField(required=False, allow_null=True)
+
     class Meta:
         model = Receta
         fields = '__all__'

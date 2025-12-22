@@ -21,6 +21,7 @@
                 <th class="text-center">Calidad</th>
                 <th class="text-center">Costo Unitario</th>
                 <th class="text-center">Unidad</th>
+                <th class="text-center">Creado por</th>
                 <th class="text-center">Acciones</th>
             </tr>
         </thead>
@@ -32,8 +33,10 @@
                 <td class="text-center">${{ ing.costo_unitario }}</td>
                 {% if ing.unidad_abreviatura %}
                 <td class="text-center">{{ ing.unidad_nombre }} ({{ ing.unidad_abreviatura }})</td>
+                <td class="text-center">{{ ing.usuario_nombre|default:ing.usuario|default:"Desconocido" }}</td>
                 {% else %}
                 <td class="text-center">{{ ing.unidad_nombre }}</td>
+                <td class="text-center">{{ ing.usuario_nombre|default:ing.usuario|default:"Desconocido" }}</td>
                 {% endif %}
 
                 <td class="text-center">

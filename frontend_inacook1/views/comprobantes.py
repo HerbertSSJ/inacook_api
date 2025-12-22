@@ -85,5 +85,7 @@ def ver_comprobante(request, id):
         "comprobante": comprobante,
         "subtotal": subtotal_sum,
         "iva_monto": iva_monto,
-        "total_final": total_final
+        "total_final": total_final,
+        "seccion": receta.get('seccion') or receta.get('Seccion') or '',
+        "asignatura": receta.get('asignatura') or receta.get('Asignatura') or ''
     })

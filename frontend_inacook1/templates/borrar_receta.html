@@ -8,8 +8,13 @@
 
     {% if imagen %}
     <div class="mb-3 text-center">
-        <img src="{{ imagen }}" alt="{{ receta.Nombre_Receta }}" class="img-fluid rounded shadow"
-            style="max-height: 300px;">
+            {% if imagen.url %}
+                <img src="{{ imagen.url }}" alt="{{ receta.Nombre_Receta }}" class="img-fluid rounded shadow"
+                    style="max-height: 300px;">
+            {% else %}
+                <img src="{{ imagen }}" alt="{{ receta.Nombre_Receta }}" class="img-fluid rounded shadow"
+                    style="max-height: 300px;">
+            {% endif %}
     </div>
     {% endif %}
 

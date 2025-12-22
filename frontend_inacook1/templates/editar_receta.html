@@ -14,7 +14,11 @@
 
         {% if receta.imagen %}
         <p><strong>Imagen actual:</strong></p>
-        <img src="{{ receta.imagen }}" style="width:300px; border-radius:10px; margin-bottom:15px;">
+            {% if receta.imagen.url %}
+                <img id="current-image" src="{{ receta.imagen.url }}" alt="Imagen receta" style="width:300px; border-radius:10px; margin-bottom:15px;">
+            {% else %}
+                <img id="current-image" src="{{ receta.imagen }}" alt="Imagen receta" style="width:300px; border-radius:10px; margin-bottom:15px;">
+            {% endif %}
         {% endif %}
 
         <h2>Datos de la receta</h2>
@@ -27,7 +31,9 @@
         <div class="ingrediente-form">
 
             <label>Ingrediente</label>
-            <select id="ingrediente-select" class="form-select">
+            <input type="text" id="ingrediente-search" class="form-control" placeholder="Buscar ingrediente...">
+            <div id="ingrediente-results" class="search-results" style="position:relative"></div>
+            <select id="ingrediente-select" class="form-select" style="display:none;">
                 <option value="">Seleccionar</option>
                 {% for ingrediente in ingredientes %}
                 <option value="{{ ingrediente.id }}" data-precio="{{ ingrediente.costo_unitario }}"
@@ -89,9 +95,81 @@
     const tablaBody = document.querySelector("#ingredientes-table tbody");
     const ingredientesJson = document.getElementById("ingredientes-json");
 
+    // Buscador de ingredientes
+    const selectIngrediente = document.getElementById('ingrediente-select');
+    const ingredienteSearch = document.getElementById('ingrediente-search');
+    const ingredienteResults = document.getElementById('ingrediente-results');
+
+    function buildSearchResults() {
+        const q = ingredienteSearch.value.trim().toLowerCase();
+        ingredienteResults.innerHTML = '';
+        if (!q) return;
+        const options = Array.from(selectIngrediente.querySelectorAll('option'))
+            .filter(opt => opt.value !== '' && opt.textContent.toLowerCase().includes(q));
+
+        const list = document.createElement('ul');
+        list.style.listStyle = 'none';
+        list.style.margin = 0;
+        list.style.padding = '4px';
+        list.style.background = '#222';
+        list.style.border = '1px solid #444';
+        list.style.maxHeight = '180px';
+        list.style.overflow = 'auto';
+
+        options.slice(0, 12).forEach(opt => {
+            const li = document.createElement('li');
+            li.textContent = opt.textContent.trim();
+            li.dataset.value = opt.value;
+            li.style.padding = '6px 8px';
+            li.style.cursor = 'pointer';
+            li.style.color = '#fff';
+            li.onmouseenter = () => li.style.background = '#333';
+            li.onmouseleave = () => li.style.background = 'transparent';
+            li.onclick = () => {
+                selectIngrediente.value = li.dataset.value;
+                ingredienteSearch.value = li.textContent;
+                ingredienteResults.innerHTML = '';
+            };
+            list.appendChild(li);
+        });
+        ingredienteResults.appendChild(list);
+    }
+
+    ingredienteSearch.addEventListener('input', buildSearchResults);
+    document.addEventListener('click', (e) => {
+        if (!ingredienteResults.contains(e.target) && e.target !== ingredienteSearch) {
+            ingredienteResults.innerHTML = '';
+        }
+    });
+
     let ingredientesReceta = ingredientesLista;
 
     renderTabla();
+
+    // Preview de imagen al seleccionar un archivo nuevo
+    (function() {
+        const form = document.getElementById('receta-form');
+        if (!form) return;
+        const fileInput = form.querySelector('input[type=file]');
+        if (!fileInput) return;
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            let img = document.getElementById('current-image');
+            if (!img) {
+                const p = document.createElement('p');
+                p.innerHTML = '<strong>Imagen seleccionada:</strong>';
+                img = document.createElement('img');
+                img.id = 'current-image';
+                img.style.width = '300px';
+                img.style.borderRadius = '10px';
+                img.style.marginBottom = '15px';
+                p.appendChild(img);
+                form.insertBefore(p, form.firstChild);
+            }
+            img.src = URL.createObjectURL(file);
+        });
+    })();
 
     function renderTabla() {
 

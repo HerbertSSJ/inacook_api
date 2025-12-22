@@ -18,6 +18,7 @@
                 <th class="text-center">Aporte (kcal)</th>
                 <th class="text-center">Tiempo</th>
                 <th class="text-center">Precio</th>
+                <th class="text-center">Creado por</th>
                 <th class="text-center">Acciones</th>
             </tr>
         </thead>
@@ -29,9 +30,13 @@
 
                 <td class="text-center">
                     {% if receta.imagen %}
-                    <img src="{{ receta.imagen.url }}" class="tabla-img">
+                        {% if receta.imagen.url %}
+                            <img src="{{ receta.imagen.url }}" class="tabla-img">
+                        {% else %}
+                            <img src="{{ receta.imagen }}" class="tabla-img">
+                        {% endif %}
                     {% else %}
-                    <span class="no-image">Sin imagen</span>
+                        <span class="no-image">Sin imagen</span>
                     {% endif %}
                 </td>
 
@@ -47,6 +52,8 @@
                     No calculado
                     {% endif %}
                 </td>
+
+                <td class="text-center">{{ receta.usuario_nombre|default:"Tú" }}</td>
 
                 <td class="text-center acciones-td">
                     <div class="acciones-btn-group">

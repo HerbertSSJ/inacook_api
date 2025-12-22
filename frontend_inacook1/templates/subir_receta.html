@@ -56,7 +56,9 @@
         <div class="ingrediente-controls">
             <div class="ing-input-group">
                 <label>Ingrediente</label>
-                <select id="ingrediente-select" class="form-select">
+                <input type="text" id="ingrediente-search" class="form-control" placeholder="Buscar ingrediente...">
+                <div id="ingrediente-results" class="search-results" style="position:relative"></div>
+                <select id="ingrediente-select" class="form-select" style="display:none;">
                     <option value="">Selecciona un ingrediente</option>
                     {% for ingrediente in ingredientes %}
                     <option value="{{ ingrediente.id }}" data-precio="{{ ingrediente.costo_unitario }}"
@@ -127,6 +129,56 @@
     const ingredientesJson = document.getElementById('ingredientes-json');
 
     let ingredientesLista = [];
+
+    // --- Buscador de ingredientes ---
+    const ingredienteSearch = document.getElementById('ingrediente-search');
+    const ingredienteResults = document.getElementById('ingrediente-results');
+
+    function buildSearchResults() {
+        const q = ingredienteSearch.value.trim().toLowerCase();
+        ingredienteResults.innerHTML = '';
+
+        if (!q) return;
+
+        const options = Array.from(selectIngrediente.querySelectorAll('option'))
+            .filter(opt => opt.value !== '' && opt.textContent.toLowerCase().includes(q));
+
+        const list = document.createElement('ul');
+        list.style.listStyle = 'none';
+        list.style.margin = 0;
+        list.style.padding = '4px';
+        list.style.background = '#222';
+        list.style.border = '1px solid #444';
+        list.style.maxHeight = '180px';
+        list.style.overflow = 'auto';
+
+        options.slice(0, 12).forEach(opt => {
+            const li = document.createElement('li');
+            li.textContent = opt.textContent.trim();
+            li.dataset.value = opt.value;
+            li.style.padding = '6px 8px';
+            li.style.cursor = 'pointer';
+            li.style.color = '#fff';
+            li.onmouseenter = () => li.style.background = '#333';
+            li.onmouseleave = () => li.style.background = 'transparent';
+            li.onclick = () => {
+                selectIngrediente.value = li.dataset.value;
+                ingredienteSearch.value = li.textContent;
+                ingredienteResults.innerHTML = '';
+                // If the select was hidden, keep it hidden; selection sufficient for logic
+            };
+            list.appendChild(li);
+        });
+
+        ingredienteResults.appendChild(list);
+    }
+
+    ingredienteSearch.addEventListener('input', buildSearchResults);
+    document.addEventListener('click', (e) => {
+        if (!ingredienteResults.contains(e.target) && e.target !== ingredienteSearch) {
+            ingredienteResults.innerHTML = '';
+        }
+    });
 
     function renderizarTabla() {
         tableBody.innerHTML = '';

@@ -29,6 +29,16 @@
             </div>
 
             <div class="filtro-item">
+                <label>Sección</label>
+                <input type="text" name="seccion" value="{{ request.GET.seccion }}" placeholder="Ej: 1A, 2B...">
+            </div>
+
+            <div class="filtro-item">
+                <label>Asignatura</label>
+                <input type="text" name="asignatura" value="{{ request.GET.asignatura }}" placeholder="Ej: Cocina básica...">
+            </div>
+
+            <div class="filtro-item">
                 <label>Letra inicial</label>
                 <select name="letra">
                     <option value="">Todas</option>
@@ -51,10 +61,12 @@
                 <th>Imagen</th>
                 <th>Nombre</th>
                 <th>Alumno</th>
+                <th>Sección</th>
+                <th>Asignatura</th>
                 <th>Categoría</th>
                 <th>Tiempo</th>
-                <th>Precio</th>
                 <th>Comprobante</th>
+                <th>Receta</th>
             </tr>
         </thead>
 
@@ -65,28 +77,30 @@
 
                 <td style="text-align:center;">
                     {% if receta.imagen %}
-                    <img src="{{ receta.imagen.url }}" class="tabla-img">
+                        {% if receta.imagen.url %}
+                            <img src="{{ receta.imagen.url }}" class="tabla-img">
+                        {% else %}
+                            <img src="{{ receta.imagen }}" class="tabla-img">
+                        {% endif %}
                     {% else %}
-                    <span class="no-image">Sin imagen</span>
+                        <span class="no-image">Sin imagen</span>
                     {% endif %}
                 </td>
 
                 <td>{{ data.nombre }}</td>
                 <td>{{ usuario }}</td>
+                <td>{{ data.seccion|default:"-" }}</td>
+                <td>{{ data.asignatura|default:"-" }}</td>
                 <td>{{ data.categoria }}</td>
                 <td>{{ data.tiempo }}</td>
 
-                <td>
-                    {% if precio != "No calculado" %}
-                    ${{ precio }}
-                    {% else %}
-                    No calculado
-                    {% endif %}
+                <td class="acciones-td text-center">
+                    <a href="{% url 'ver_comprobante' receta.id %}" class="btn btn-secondary btn-sm">Ver</a>
+                </td>
+                <td class="acciones-td text-center">
+                    <a href="{% url 'editar_receta' receta.id %}" class="btn btn-secondary btn-sm">Ver</a>
                 </td>
 
-                <td>
-                    <a href="{% url 'ver_comprobante' receta.id %}" class="btn btn-secondary">Ver</a>
-                </td>
 
             </tr>
             {% endwith %}
