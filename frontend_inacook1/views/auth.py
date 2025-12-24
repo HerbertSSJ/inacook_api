@@ -2,6 +2,8 @@ import requests
 from django.shortcuts import render, redirect
 from django.contrib import messages
 
+from inacook.models import Rol
+
 API_LOGIN = "http://127.0.0.1:8000/api/token-auth/"
 
 def login_view(request):
@@ -57,14 +59,12 @@ API_REGISTER = "http://127.0.0.1:8000/api/usuarios/"
 API_ROLES = "http://127.0.0.1:8000/api/roles/"
 
 def register_view(request):
-    roles = []
-    
-    try:
-        resp_roles = requests.get(API_ROLES)
-        if resp_roles.status_code == 200:
-            roles = resp_roles.json()
-    except Exception:
-        roles = []
+    # Obtener únicamente el rol 'Estudiante' desde la base de datos.
+    rol_obj = Rol.objects.filter(nombre__iexact='estudiante').first()
+    if not rol_obj:
+        rol_obj = Rol.objects.create(nombre='Estudiante')
+
+    roles = [{'id': rol_obj.id, 'nombre': rol_obj.nombre}]
 
     if request.method == "POST":
 
