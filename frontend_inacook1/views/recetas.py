@@ -1,136 +1,100 @@
-import requests
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-
-API_RECETAS = "http://127.0.0.1:8000/api/recetas/"
-API_ALUMNOS = "http://127.0.0.1:8000/api/usuarios/"
-API_RECETA_INGREDIENTE = "http://127.0.0.1:8000/api/receta-ingrediente/"
-API_INGREDIENTES = "http://127.0.0.1:8000/api/ingredientes/"
-API_UNIDADES = "http://127.0.0.1:8000/api/unidades/"
-API_COMPROBANTES = "http://127.0.0.1:8000/api/comprobantes/"
-
-import json
+from django.db import transaction
+from inacook.models import Receta, Receta_Ingrediente, Comprobante, Ingrediente, UnidadMedicion, Usuario
 from ..forms import RecetaForm
-
-def get_auth_headers(request):
-    token = request.session.get('token')
-    return {'Authorization': f'Token {token}'} if token else {}
+import json
 
 def subir_receta(request):
     if not request.session.get('token'):
         return redirect('login')
 
-    headers = get_auth_headers(request)
+    # Obtener ingredientes y unidades vía ORM
+    ingredientes_qs = Ingrediente.objects.select_related('unidad_medicion').all()
+    unidades_qs = UnidadMedicion.objects.all()
 
-    try:
-        resp_ing = requests.get(API_INGREDIENTES, headers=headers)
-        ingredientes = resp_ing.json() if resp_ing.status_code == 200 else []
-        
-        resp_uni = requests.get(API_UNIDADES, headers=headers)
-        unidades = resp_uni.json() if resp_uni.status_code == 200 else []
-    except:
-        ingredientes = []
-        unidades = []
-
-    # Anotar abreviatura de unidad en cada ingrediente (si tenemos las unidades)
-    try:
-        unit_map = {u.get('id'): u.get('abreviatura') for u in unidades}
-        for ing in ingredientes:
-            u_id = ing.get('unidad_medicion')
-            # si la unidad viene como objeto
-            if isinstance(u_id, dict):
-                ing['unidad_abreviatura'] = u_id.get('abreviatura')
-            else:
-                ing['unidad_abreviatura'] = unit_map.get(u_id, '')
-    except Exception:
-        pass
-
-    if not unidades:
-        unidades = [
-            {"nombre": "Gramo", "abreviatura": "g"},
-            {"nombre": "Kilogramo", "abreviatura": "kg"},
-            {"nombre": "Miligramo", "abreviatura": "mg"},
-            {"nombre": "Litro", "abreviatura": "L"},
-            {"nombre": "Mililitro", "abreviatura": "ml"},
-            {"nombre": "Unidad", "abreviatura": "u"},
-            {"nombre": "Cucharada", "abreviatura": "cda"},
-            {"nombre": "Cucharadita", "abreviatura": "cdta"},
-            {"nombre": "Taza", "abreviatura": "taza"},
-        ]
+    # Convertir a listas de diccionarios para el template/JS
+    ingredientes = []
+    for ing in ingredientes_qs:
+        ingredientes.append({
+            'id': ing.id,
+            'nombre': ing.nombre,
+            'costo_unitario': ing.costo_unitario,
+            'unidad_medicion': ing.unidad_medicion.id if ing.unidad_medicion else None,
+            'unidad_abreviatura': ing.unidad_medicion.abreviatura if ing.unidad_medicion else ''
+        })
+    
+    unidades = []
+    for u in unidades_qs:
+        unidades.append({
+            'id': u.id,
+            'nombre': u.nombre,
+            'abreviatura': u.abreviatura
+        })
 
     if request.method == "POST":
         form = RecetaForm(request.POST, request.FILES)
         
         if form.is_valid():
-            data = {
-                "nombre": form.cleaned_data['Nombre_Receta'], 
-                "categoria": form.cleaned_data['Categoria'],
-                "aporte_calorico": form.cleaned_data['Aporte_Calorico'],
-                "tiempo_preparacion": form.cleaned_data['Tiempo_Preparacion'],
-                "usuario": request.session.get("user_id"),
-                "seccion": form.cleaned_data.get('Seccion'),
-                "asignatura": form.cleaned_data.get('Asignatura')
-            }
-            
-            files = {}
-            if request.FILES.get('imagen'):
-                files['imagen'] = request.FILES['imagen']
-
-            if files:
-                 response = requests.post(API_RECETAS, data=data, files=files, headers=headers)
-            else:
-                 response = requests.post(API_RECETAS, json=data, headers=headers)
-            
-            if response.status_code == 201:
-                receta_id = response.json().get('id')
+            user_id = request.session.get("user_id")
+            try:
+                usuario_obj = Usuario.objects.get(id=user_id)
                 
-                ingredientes_json = request.POST.get('ingredientes_json')
-                if ingredientes_json:
-                    try:
+                with transaction.atomic():
+                    # Crear Receta
+                    receta = Receta.objects.create(
+                        nombre=form.cleaned_data['Nombre_Receta'],
+                        categoria=form.cleaned_data['Categoria'],
+                        aporte_calorico=form.cleaned_data['Aporte_Calorico'],
+                        tiempo_preparacion=form.cleaned_data['Tiempo_Preparacion'],
+                        usuario=usuario_obj,
+                        seccion=form.cleaned_data.get('Seccion'),
+                        asignatura=form.cleaned_data.get('Asignatura'),
+                        imagen=request.FILES.get('imagen')
+                    )
+
+                    # Procesar Ingredientes
+                    ingredientes_json = request.POST.get('ingredientes_json')
+                    subtotal = 0
+                    
+                    if ingredientes_json:
                         lista_ing = json.loads(ingredientes_json)
+                        # Mapa de precios para calcular total
+                        price_map = {i.id: i.costo_unitario for i in ingredientes_qs}
                         
-                        price_map = {int(i['id']): float(i.get('costo_unitario', 0)) for i in ingredientes}
-                        subtotal = 0
                         for item in lista_ing:
                             ing_id = int(item['id'])
                             cantidad = float(item['cantidad'])
-                            ing_data = {
-                                "receta": receta_id,
-                                "ingrediente": ing_id,
-                                "cantidad": cantidad
-                            }
+                            peso = float(item.get('peso', 0) or 0)
+                            peso_total = float(item.get('peso_total', 0) or 0)
                             
-                            if item.get('peso') is not None:
-                                try:
-                                    ing_data['peso'] = float(item.get('peso'))
-                                except Exception:
-                                    pass
-                            if item.get('peso_total') is not None:
-                                try:
-                                    ing_data['peso_total'] = float(item.get('peso_total'))
-                                except Exception:
-                                    pass
-                            requests.post(API_RECETA_INGREDIENTE, json=ing_data, headers=headers)
-                            subtotal += price_map.get(ing_id, 0) * cantidad
+                            ing_obj = Ingrediente.objects.get(id=ing_id)
+                            
+                            Receta_Ingrediente.objects.create(
+                                receta=receta,
+                                ingrediente=ing_obj,
+                                cantidad=cantidad,
+                                peso=peso,
+                                peso_total=peso_total
+                            )
+                            
+                            costo = price_map.get(ing_id, 0)
+                            subtotal += (costo * cantidad)
 
-                
-                        try:
-                            comprobante_payload = {
-                                "receta": receta_id,
-                                "factor_multiplicacion": 1,
-                                "iva": 19,
-                                "precio_bruto": int(subtotal)
-                            }
-                            requests.post(API_COMPROBANTES, json=comprobante_payload, headers=headers)
-                        except Exception as e:
-                            print(f"Error creando comprobante: {e}")
-                    except Exception as e:
-                        print(f"Error procesando ingredientes: {e}")
-                
+                    # Crear Comprobante
+                    Comprobante.objects.create(
+                        receta=receta,
+                        factor_multiplicacion=1,
+                        iva=19,
+                        precio_bruto=int(subtotal)
+                    )
+
                 messages.success(request, "Receta creada exitosamente")
                 return redirect('ver_recetas')
-            else:
-                messages.error(request, "Error al crear la receta en el servidor")
+
+            except Exception as e:
+                messages.error(request, f"Error al crear la receta: {e}")
+                
     else:
         form = RecetaForm()
 
@@ -144,188 +108,137 @@ def editar_receta(request, id):
     if not request.session.get('token'):
         return redirect('login')
         
-    headers = get_auth_headers(request)
+    receta = get_object_or_404(Receta, id=id)
 
-    resp_r = requests.get(f"{API_RECETAS}{id}/", headers=headers)
-    if resp_r.status_code != 200:
-        messages.error(request, "Receta no encontrada")
-        return redirect('ver_recetas')
+    # Datos básicos
+    ingredientes_qs = Ingrediente.objects.select_related('unidad_medicion').all()
+    unidades_qs = UnidadMedicion.objects.all()
     
-    receta = resp_r.json()
-    
-    resp_ing = requests.get(API_INGREDIENTES, headers=headers)
-    ingredientes_list = resp_ing.json() if resp_ing.status_code == 200 else []
-    
-    resp_uni = requests.get(API_UNIDADES, headers=headers)
-    unidades_list = resp_uni.json() if resp_uni.status_code == 200 else []
+    receta_ings_qs = Receta_Ingrediente.objects.filter(receta=receta).select_related('ingrediente__unidad_medicion')
 
-    if not unidades_list:
-        unidades_list = [
-            {"nombre": "Gramo", "abreviatura": "g", "id": None},
-            {"nombre": "Kilogramo", "abreviatura": "kg", "id": None},
-            {"nombre": "Miligramo", "abreviatura": "mg", "id": None},
-            {"nombre": "Litro", "abreviatura": "L", "id": None},
-            {"nombre": "Mililitro", "abreviatura": "ml", "id": None},
-            {"nombre": "Unidad", "abreviatura": "u", "id": None},
-            {"nombre": "Cucharada", "abreviatura": "cda", "id": None},
-            {"nombre": "Cucharadita", "abreviatura": "cdta", "id": None},
-            {"nombre": "Taza", "abreviatura": "taza", "id": None},
-        ]
-    
-    resp_rels = requests.get(API_RECETA_INGREDIENTE, headers=headers)
-    all_rels = resp_rels.json() if resp_rels.status_code == 200 else []
-    
-    unit_map = {u['id']: u for u in unidades_list}
-    
-    for ing in ingredientes_list:
-        u_id = ing.get('unidad_medicion')
-        u_obj = unit_map.get(u_id)
-        if u_obj:
-            ing['unidad_abreviatura'] = u_obj.get('abreviatura')
-        else:
-            ing['unidad_abreviatura'] = ''
-    
+    # Preparar estructuras para template
+    ingredientes_list = []
+    for ing in ingredientes_qs:
+        ingredientes_list.append({
+            'id': ing.id,
+            'nombre': ing.nombre,
+            'costo_unitario': ing.costo_unitario,
+            'calidad': ing.calidad,
+            'unidad_medicion': ing.unidad_medicion.id if ing.unidad_medicion else None,
+            'unidad_abreviatura': ing.unidad_medicion.abreviatura if ing.unidad_medicion else ''
+        })
+        
+    unidades_list = [{'id': u.id, 'nombre': u.nombre, 'abreviatura': u.abreviatura} for u in unidades_qs]
+
+    # Ingredientes actuales de la receta
     receta_ingredientes = []
-    
-    ing_map = {i['id']: i for i in ingredientes_list}
-    
-    for rel in all_rels:
-        if rel['receta'] == id:
-            ing_obj = ing_map.get(rel['ingrediente'])
-            if ing_obj:
-                mock_rel = {
-                    'id': rel['id'], 
-                    'Cantidad': rel['cantidad'],
-                    'Ingrediente': ing_obj,
-                    'Peso': rel.get('peso'),
-                    'Peso_total': rel.get('peso_total')
-                }
-                receta_ingredientes.append(mock_rel)
+    for ri in receta_ings_qs:
+        receta_ingredientes.append({
+            'id': ri.id,
+            'Cantidad': ri.cantidad,
+            'Ingrediente': {
+                'id': ri.ingrediente.id,
+                'nombre': ri.ingrediente.nombre,
+                'costo_unitario': ri.ingrediente.costo_unitario,
+                'calidad': ri.ingrediente.calidad,
+                'unidad_abreviatura': ri.ingrediente.unidad_medicion.abreviatura if ri.ingrediente.unidad_medicion else ''
+            },
+            'Peso': ri.peso,
+            'Peso_total': ri.peso_total
+        })
 
     initial_data = {
-        'Nombre_Receta': receta.get('Nombre_Receta', receta.get('nombre')),
-        'Categoria': receta.get('Categoria', receta.get('categoria')),
-        'Aporte_Calorico': receta.get('Aporte_Calorico', receta.get('aporte_calorico')),
-        'Tiempo_Preparacion': receta.get('Tiempo_Preparacion', receta.get('tiempo_preparacion')),
-        'Seccion': receta.get('seccion', receta.get('Seccion')),
-        'Asignatura': receta.get('asignatura', receta.get('Asignatura')),
+        'Nombre_Receta': receta.nombre,
+        'Categoria': receta.categoria,
+        'Aporte_Calorico': receta.aporte_calorico,
+        'Tiempo_Preparacion': receta.tiempo_preparacion,
+        'Seccion': receta.seccion,
+        'Asignatura': receta.asignatura,
     }
 
     if request.method == "POST":
         form = RecetaForm(request.POST, request.FILES)
         if form.is_valid():
-            data = {
-                "nombre": form.cleaned_data['Nombre_Receta'],
-                "categoria": form.cleaned_data['Categoria'],
-                "aporte_calorico": form.cleaned_data['Aporte_Calorico'],
-                "tiempo_preparacion": form.cleaned_data['Tiempo_Preparacion'],
-                "usuario": receta.get('usuario'),
-                "seccion": form.cleaned_data.get('Seccion'),
-                "asignatura": form.cleaned_data.get('Asignatura')
-            }
-            
-            
-            files = {}
-            if request.FILES.get('imagen'):
-                files['imagen'] = request.FILES['imagen']
-
-            if files:
-                try:
-                    requests.put(f"{API_RECETAS}{id}/", data=data, files=files, headers=headers)
-                except Exception:
+            try:
+                with transaction.atomic():
+                    # Actualizar campos
+                    receta.nombre = form.cleaned_data['Nombre_Receta']
+                    receta.categoria = form.cleaned_data['Categoria']
+                    receta.aporte_calorico = form.cleaned_data['Aporte_Calorico']
+                    receta.tiempo_preparacion = form.cleaned_data['Tiempo_Preparacion']
+                    receta.seccion = form.cleaned_data.get('Seccion')
+                    receta.asignatura = form.cleaned_data.get('Asignatura')
                     
-                    requests.put(f"{API_RECETAS}{id}/", json=data, headers=headers)
-            else:
-                requests.put(f"{API_RECETAS}{id}/", json=data, headers=headers)
-            
-            ingredientes_json = request.POST.get('ingredientes_json')
-            if ingredientes_json:
-                try:
-                    for old_rel in receta_ingredientes:
-                        requests.delete(f"{API_RECETA_INGREDIENTE}{old_rel['id']}/", headers=headers)
+                    if request.FILES.get('imagen'):
+                        receta.imagen = request.FILES['imagen']
                     
-                    lista_ing = json.loads(ingredientes_json)
+                    receta.save()
                     
-                    price_map = {int(i['id']): float(i.get('costo_unitario', 0)) for i in ingredientes_list}
-                    subtotal = 0
-                    for item in lista_ing:
+                    # Actualizar Ingredientes
+                    ingredientes_json = request.POST.get('ingredientes_json')
+                    if ingredientes_json:
+                        # Borrar anteriores
+                        Receta_Ingrediente.objects.filter(receta=receta).delete()
+                        
+                        lista_ing = json.loads(ingredientes_json)
+                        price_map = {i.id: i.costo_unitario for i in ingredientes_qs}
+                        subtotal = 0
+                        
+                        for item in lista_ing:
                             ing_id = int(item['id'])
                             cantidad = float(item['cantidad'])
-                            ing_data = {
-                                "receta": id,
-                                "ingrediente": ing_id,
-                                "cantidad": cantidad
-                            }
-                            if item.get('peso') is not None:
-                                try:
-                                    ing_data['peso'] = float(item.get('peso'))
-                                except Exception:
-                                    pass
-                            if item.get('peso_total') is not None:
-                                try:
-                                    ing_data['peso_total'] = float(item.get('peso_total'))
-                                except Exception:
-                                    pass
-                            requests.post(API_RECETA_INGREDIENTE, json=ing_data, headers=headers)
-                            subtotal += price_map.get(ing_id, 0) * cantidad
-
-                    
-                    try:
-                        resp_c = requests.get(API_COMPROBANTES, headers=headers)
-                        comprobantes = resp_c.json() if resp_c.status_code == 200 else []
-                        existing = next((c for c in comprobantes if c.get('receta') == id), None)
-                        payload = {
-                            "receta": id,
-                            "factor_multiplicacion": 1,
-                            "iva": 19,
-                            "precio_bruto": int(subtotal)
-                        }
-                        if existing:
+                            peso = float(item.get('peso', 0) or 0)
+                            peso_total = float(item.get('peso_total', 0) or 0)
                             
-                            try:
-                                requests.put(f"{API_COMPROBANTES}{existing['id']}/", json=payload, headers=headers)
-                            except Exception:
-                                pass
-                        else:
-                            try:
-                                requests.post(API_COMPROBANTES, json=payload, headers=headers)
-                            except Exception:
-                                pass
-                    except Exception:
-                        pass
+                            ing_obj = Ingrediente.objects.get(id=ing_id)
+                            
+                            Receta_Ingrediente.objects.create(
+                                receta=receta,
+                                ingrediente=ing_obj,
+                                cantidad=cantidad,
+                                peso=peso,
+                                peso_total=peso_total
+                            )
+                            subtotal += (price_map.get(ing_id, 0) * cantidad)
+                        
+                        # Actualizar Comprobante
+                        comp, _ = Comprobante.objects.get_or_create(receta=receta)
+                        comp.precio_bruto = int(subtotal)
+                        comp.save()
 
                     messages.success(request, "Receta modificada exitosamente")
                     return redirect('ver_recetas')
-                    
-                except Exception as e:
-                    print(e)
-                    messages.error(request, "Error guardando ingredientes")
-    
+
+            except Exception as e:
+                messages.error(request, f"Error actualizando receta: {e}")
     else:
         form = RecetaForm(initial=initial_data)
 
-    ingredientes_bd = {}
+    # Convertir receta a dict si es necesario, pero objeto funciona en template
+    # receta es objeto Receta
+    
+    # JSONs para JS
+    ingredientes_bd_dict = {}
     for ing in ingredientes_list:
-        ingredientes_bd[ing['id']] = {
+        ingredientes_bd_dict[ing['id']] = {
             "nombre": ing['nombre'],
             "precio": ing['costo_unitario'],
             "calidad": ing['calidad'],
-            "unidad": ing.get('unidad_abreviatura', '')
+            "unidad": ing['unidad_abreviatura']
         }
-    
-    current_ingredientes = []
+
+    current_ingredientes_list_js = []
     for ri in receta_ingredientes:
-        ing_obj = ri['Ingrediente']
-        current_ingredientes.append({
-            "id": ing_obj['id'],
-            "nombre": ing_obj['nombre'],
+         current_ingredientes_list_js.append({
+            "id": ri['Ingrediente']['id'],
+            "nombre": ri['Ingrediente']['nombre'],
             "cantidad": ri['Cantidad'],
-            "unidad": ing_obj.get('unidad_abreviatura', ''),
-            "precio": ing_obj['costo_unitario'],
-            "calidad": ing_obj['calidad'],
-            "peso": ri.get('Peso'),
-            "peso_total": ri.get('Peso_total')
-        })
+            "unidad": ri['Ingrediente']['unidad_abreviatura'],
+            "precio": ri['Ingrediente']['costo_unitario'],
+            "calidad": ri['Ingrediente']['calidad'],
+            "peso": ri['Peso'],
+            "peso_total": ri['Peso_total']
+         })
 
     return render(request, "editar_receta.html", {
         "receta_form": form,
@@ -333,72 +246,49 @@ def editar_receta(request, id):
         "ingredientes": ingredientes_list,
         "unidades": unidades_list,
         "receta_ingredientes": receta_ingredientes,
-        "ingredientes_bd_json": json.dumps(ingredientes_bd),
-        "receta_ingredientes_json": json.dumps(current_ingredientes)
+        "ingredientes_bd_json": json.dumps(ingredientes_bd_dict),
+        "receta_ingredientes_json": json.dumps(current_ingredientes_list_js)
     })
 
 def borrar_receta(request, id):
     if not request.session.get('token'):
         return redirect('login')
     
-    headers = get_auth_headers(request)
+    receta = get_object_or_404(Receta, id=id)
     
-    response = requests.get(f"{API_RECETAS}{id}/", headers=headers)
-    if response.status_code != 200:
-        return redirect('ver_recetas')
+    # Obtener ingredientes para mostrar en la confirmación
+    rels = Receta_Ingrediente.objects.filter(receta=receta).select_related('ingrediente__unidad_medicion')
     
-    receta = response.json()
-
-    
-    try:
-        resp_rels = requests.get(API_RECETA_INGREDIENTE, headers=headers)
-        all_rels = resp_rels.json() if resp_rels.status_code == 200 else []
-
-        resp_ing = requests.get(API_INGREDIENTES, headers=headers)
-        all_ings = resp_ing.json() if resp_ing.status_code == 200 else []
-        ing_map = {i['id']: i for i in all_ings}
-
-    
-        resp_uni = requests.get(API_UNIDADES, headers=headers)
-        uni_map = {u['id']: u for u in resp_uni.json()} if resp_uni.status_code == 200 else {}
-
-        rels = [r for r in all_rels if r.get('receta') == id]
-
-        ingredientes = []
-        for r in rels:
-            ing = ing_map.get(r.get('ingrediente'))
-            if not ing:
-                continue
-            unidad_nombre = ''
-            unidad_id = ing.get('unidad_medicion')
-            if unidad_id:
-                unidad = uni_map.get(unidad_id)
-                unidad_nombre = unidad.get('abreviatura') if unidad else ''
-
-            ingredientes.append({
-                'nombre': ing.get('nombre'),
-                'cantidad': r.get('cantidad'),
-                'unidad': unidad_nombre,
-                'precio': ing.get('costo_unitario')
-            })
-    except Exception:
-        ingredientes = []
+    ingredientes = []
+    for r in rels:
+        ingredientes.append({
+            'nombre': r.ingrediente.nombre,
+            'cantidad': r.cantidad,
+            'unidad': r.ingrediente.unidad_medicion.abreviatura if r.ingrediente.unidad_medicion else '',
+            'precio': r.ingrediente.costo_unitario
+        })
 
     if request.method == "POST":
-        requests.delete(f"{API_RECETAS}{id}/", headers=headers)
-        messages.success(request, "Receta eliminada")
-        return redirect("ver_recetas")
+        try:
+            receta.delete()
+            messages.success(request, "Receta eliminada")
+            return redirect("ver_recetas")
+        except Exception as e:
+            messages.error(request, f"Error al eliminar: {e}")
     
-    imagen = receta.get('imagen') if receta.get('imagen') else None
-    return render(request, "borrar_receta.html", {"receta": receta, "imagen": imagen, "ingredientes": ingredientes})
+    return render(request, "borrar_receta.html", {
+        "receta": receta, 
+        "imagen": receta.imagen.url if receta.imagen else None,
+        "ingredientes": ingredientes
+    })
 
 def eliminar_receta(request, id):
-    response = requests.delete(f"{API_RECETAS}{id}/")
-
-    if response.status_code == 204:
+    try:
+        receta = get_object_or_404(Receta, id=id)
+        receta.delete()
         messages.success(request, "Receta eliminada correctamente")
-    else:
-        messages.error(request, "No se pudo eliminar la receta")
+    except Exception as e:
+        messages.error(request, f"No se pudo eliminar la receta: {e}")
 
     return redirect("ver_recetas")
 
@@ -408,51 +298,21 @@ def ver_recetas(request):
         return redirect('login')
 
     user_id = request.session.get('user_id')
-    headers = get_auth_headers(request)
     
-    response = requests.get(API_RECETAS, headers=headers)
-    if response.status_code != 200:
-        messages.error(request, "Error al cargar las recetas")
-        return render(request, "ver_recetas.html", {"recetas_data": []})
-
-    all_recetas = response.json()
+    # Mis recetas
+    recetas_qs = Receta.objects.filter(usuario__id=user_id)
     
-    mis_recetas = [r for r in all_recetas if r.get('usuario') == user_id]
-    
-    if not mis_recetas:
-        return render(request, "ver_recetas.html", {"recetas_data": []})
-
-    try:
-        resp_rels = requests.get(API_RECETA_INGREDIENTE, headers=headers)
-        all_rels = resp_rels.json() if resp_rels.status_code == 200 else []
-        
-        resp_ings = requests.get(API_INGREDIENTES, headers=headers)
-        all_ings = resp_ings.json() if resp_ings.status_code == 200 else []
-        
-        ing_map = {i['id']: i for i in all_ings}
-        
-    except Exception as e:
-        print(f"Error fetching details: {e}")
-        all_rels = []
-        ing_map = {}
-
     recetas_data = []
     
-    for receta in mis_recetas:
-        rels = [r for r in all_rels if r['receta'] == receta['id']]
-        
+    for r in recetas_qs:
+        # Calcular precio total
         total_precio = 0
+        rels = Receta_Ingrediente.objects.filter(receta=r).select_related('ingrediente')
         for rel in rels:
-            ing_id = rel['ingrediente']
-            cantidad = rel['cantidad']
-            ing_obj = ing_map.get(ing_id)
+            total_precio += (rel.ingrediente.costo_unitario * rel.cantidad)
             
-            if ing_obj:
-                precio_unitario = ing_obj.get('costo_unitario', 0)
-                total_precio += (precio_unitario * cantidad)
-        
         recetas_data.append({
-            "receta": receta,
+            "receta": r,
             "precio": round(total_precio, 2) if total_precio > 0 else "No calculado"
         })
 
@@ -463,133 +323,69 @@ def ver_recetas(request):
     )
 
 def ver_recetas_alumnos(request):
-    headers = get_auth_headers(request)
-    resp_recetas = requests.get(API_RECETAS, headers=headers)
-    recetas = resp_recetas.json() if resp_recetas.status_code == 200 else []
-
-    resp_users = requests.get(API_ALUMNOS, headers=headers)
-    usuarios = resp_users.json() if resp_users.status_code == 200 else []
+    # Obtener IDs de usuarios que son alumnos (rol contiene alumno/estudiante o ID rol=2 assumption from before)
+    # Mejor filtrar por nombre de rol
+    alumnos_qs = Usuario.objects.filter(rol__nombre__icontains='estudiante') | \
+                 Usuario.objects.filter(rol__nombre__icontains='alumno')
+                 # Omitiremos el ID 2 hardcoded para ser más seguros con ORM
     
-    alumnos_ids = set()
-    for u in usuarios:
-        nombre_rol = (u.get('nombre_rol') or '').lower()
-        
-        if 'alumno' in nombre_rol or 'estudiante' in nombre_rol or u.get('rol') == 2:
-            alumnos_ids.add(u.get('id'))
-            if u.get('user'):
-                alumnos_ids.add(u.get('user'))
-    alumnos_ids = list(alumnos_ids)
+    recetas_qs = Receta.objects.filter(usuario__in=alumnos_qs).select_related('usuario', 'usuario__user')
     
-    recetas_alumnos_raw = [r for r in recetas if r['usuario'] in alumnos_ids]
-    
+    # Filtros
     buscar = request.GET.get('buscar', '').strip().lower()
     categoria_filtro = request.GET.get('categoria')
     seccion_filtro = request.GET.get('seccion')
     asignatura_filtro = request.GET.get('asignatura')
-    if categoria_filtro:
-        categoria_filtro = categoria_filtro.strip()
-        if categoria_filtro.lower() == 'todas':
-            categoria_filtro = None
-        else:
-            categoria_filtro = categoria_filtro.lower()
-
     letra = request.GET.get('letra')
-    if letra:
-        letra = letra.strip()
-        if letra.lower() == 'todas':
-            letra = None
-        else:
-            letra = letra.upper()
+
+    if categoria_filtro and categoria_filtro.lower() != 'todas':
+        recetas_qs = recetas_qs.filter(categoria__iexact=categoria_filtro)
+        
+    if seccion_filtro:
+        recetas_qs = recetas_qs.filter(seccion__icontains=seccion_filtro)
+        
+    if asignatura_filtro:
+        recetas_qs = recetas_qs.filter(asignatura__icontains=asignatura_filtro)
+        
+    if buscar:
+        recetas_qs = recetas_qs.filter(nombre__icontains=buscar)
+        
+    if letra and letra.lower() != 'todas':
+        recetas_qs = recetas_qs.filter(nombre__istartswith=letra)
+
+    # Collect categories for filter dropdown
+    all_categories = Receta.objects.exclude(categoria__isnull=True).exclude(categoria='').values_list('categoria', flat=True).distinct()
     
-    filtered_recetas = []
-    for r in recetas_alumnos_raw:
-        
-        if buscar and buscar not in r.get('nombre', '').lower():
-            continue
-
-        if seccion_filtro:
-            sf = seccion_filtro.strip().lower()
-            r_seccion = (r.get('seccion') or r.get('Seccion') or '').strip().lower()
-            if sf and sf not in r_seccion:
-                continue
-
-        if asignatura_filtro:
-            af = asignatura_filtro.strip().lower()
-            r_asig = (r.get('asignatura') or r.get('Asignatura') or '').strip().lower()
-            if af and af not in r_asig:
-                continue
-
-        
-        if categoria_filtro and (not r.get('categoria') or r.get('categoria', '').strip().lower() != categoria_filtro):
-            continue
-
-        
-        if not buscar and letra and not r.get('nombre', '').upper().startswith(letra):
-            continue
-
-        filtered_recetas.append(r)
-        
-    if filtered_recetas:
-        resp_rel = requests.get(API_RECETA_INGREDIENTE, headers=headers)
-        all_rels = resp_rel.json() if resp_rel.status_code == 200 else []
-        
-        resp_ing = requests.get(API_INGREDIENTES, headers=headers)
-        all_ings = resp_ing.json() if resp_ing.status_code == 200 else []
-        ing_dict = {i['id']: i for i in all_ings}
-        
-        user_dict = {u['id']: u.get('username', 'Desconocido') for u in usuarios}
-    else:
-        all_rels = []
-        ing_dict = {}
-        user_dict = {}
-
-
-    resp_comp = requests.get(API_COMPROBANTES, headers=headers)
-    comprobantes = resp_comp.json() if resp_comp.status_code == 200 else []
-    comp_map = {c.get('receta'): c for c in comprobantes}
-
     recetas_data = []
-    all_categories = set()
     
-    for r in recetas:
-        if r.get('categoria'):
-            all_categories.add(r['categoria'])
-        
-    for r in filtered_recetas:
-        rels = [rel for rel in all_rels if rel['receta'] == r['id']]
+    for r in recetas_qs:
+        # Calcular total
+        rels = Receta_Ingrediente.objects.filter(receta=r).select_related('ingrediente')
         subtotal = 0
         for rel in rels:
-            ing = ing_dict.get(rel['ingrediente'])
-            if ing:
-                subtotal += rel['cantidad'] * ing.get('costo_unitario', 0)
-
-        
-        comp = comp_map.get(r['id'])
+            subtotal += (rel.cantidad * rel.ingrediente.costo_unitario)
+            
+        # Comprobante data
+        iva_rate = 19
+        factor = 1
+        comp = Comprobante.objects.filter(receta=r).first()
         if comp:
-            iva_rate = comp.get('iva', 19)
-            factor = comp.get('factor_multiplicacion', 1)
-        else:
-            iva_rate = 19
-            factor = 1
-
+            iva_rate = comp.iva
+            factor = comp.factor_multiplicacion
+            
         iva_amount = subtotal * (iva_rate / 100)
-        total_con_iva = round((subtotal + iva_amount) * factor, 2) if subtotal > 0 else "No calculado"
-
-        
-        nombre = r.get('nombre') or r.get('Nombre_Receta') or ''
-        categoria = r.get('categoria') or r.get('Categoria') or ''
-        tiempo = r.get('tiempo_preparacion') or r.get('Tiempo_Preparacion') or ''
+        total_con_iva = round((subtotal + iva_amount) * factor, 2)
 
         recetas_data.append({
             'receta': r,
-            'nombre': nombre,
-            'categoria': categoria,
-            'tiempo': tiempo,
-            'seccion': r.get('seccion') or r.get('Seccion') or '',
-            'asignatura': r.get('asignatura') or r.get('Asignatura') or '',
+            'nombre': r.nombre,
+            'categoria': r.categoria,
+            'tiempo': r.tiempo_preparacion,
+            'seccion': r.seccion,
+            'asignatura': r.asignatura,
             'precio_subtotal': round(subtotal, 2) if subtotal > 0 else "No calculado",
             'precio': total_con_iva if subtotal > 0 else "No calculado",
-            'usuario': user_dict.get(r['usuario'], 'Desconocido')
+            'usuario': r.usuario.user.username if r.usuario and r.usuario.user else 'Desconocido'
         })
         
     return render(request, "ver_recetas_alumnos.html", {

@@ -28,20 +28,21 @@
                 autocomplete="new-password">
         </div>
 
-        <div class="form-group">
-            <label for="rol">Rol:</label>
-            <select name="rol" id="rol" required>
-                {% if roles %}
-                    {% for r in roles %}
-                        {% if r.nombre|lower == 'estudiante' %}
-                            <option value="{{ r.id }}" selected>{{ r.nombre }}</option>
-                        {% endif %}
-                    {% endfor %}
-                {% else %}
-                    <option value="">No hay roles disponibles</option>
-                {% endif %}
-            </select>
-        </div>
+<div class="form-group">
+    <label for="rol">Rol:</label>
+    {% if roles %}
+        {% for r in roles %}
+            {% if r.nombre|lower == "estudiante" %}
+                <!-- Campo visible pero deshabilitado -->
+                <input type="text" value="{{ r.nombre }}" disabled class="form-control">
+                <!-- Campo hidden que envía el id al backend -->
+                <input type="hidden" name="rol" value="{{ r.id }}">
+            {% endif %}
+        {% endfor %}
+    {% else %}
+        <input type="text" value="No hay roles disponibles" disabled class="form-control">
+    {% endif %}
+</div>
 
 
 

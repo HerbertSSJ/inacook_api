@@ -1,65 +1,71 @@
-import requests
 from django.shortcuts import render
 from django.contrib import messages
-
-API_HISTORIAL = "http://127.0.0.1:8000/api/historial/"
-API_USUARIOS = "http://127.0.0.1:8000/api/usuarios/"
-
+from inacook.models import Historial, Usuario
 from django.utils.dateparse import parse_datetime
 
 def ver_historial(request):
-    
-    headers = {}
-    token = request.session.get('token')
-    if token:
-        headers['Authorization'] = f'Token {token}'
+    if not request.session.get('token'):
+        pass # Or redirect login, old code didn't force redirect, just empty data
 
-    
-    usuarios = []
+    # Usuarios para selects y lógica de roles
     try:
-        resp_users = requests.get(API_USUARIOS, headers=headers)
-        usuarios = resp_users.json() if resp_users.status_code == 200 else []
+        usuarios = Usuario.objects.select_related('rol').all()
     except Exception:
         usuarios = []
 
+    # Historial
+    usuario_id_filter = request.GET.get('usuario_id')
     
-    params = {}
-    usuario_id = request.GET.get('usuario_id')
-    if usuario_id:
-        params['usuario_id'] = usuario_id
-
-    try:
-        response = requests.get(API_HISTORIAL, headers=headers, params=params)
-    except Exception:
-        response = None
-
-    if response is not None and response.status_code == 200:
-        historial = response.json()
-        for h in historial:
-            if h.get('fecha_modificacion'):
-                h['fecha_modificacion'] = parse_datetime(h['fecha_modificacion'])
+    historial_qs = Historial.objects.all()
+    if usuario_id_filter:
+        historial_qs = historial_qs.filter(usuario_id=usuario_id_filter)
         
-        historial.sort(key=lambda x: x['fecha_modificacion'] if x.get('fecha_modificacion') else parse_datetime('1900-01-01T00:00:00Z'), reverse=True)
-    else:
-        historial = []
-        messages.error(request, "No se pudo cargar el historial")
+    # Ordenar
+    historial_qs = historial_qs.order_by('-fecha_modificacion')
+    
+    # Preparar datos para template (lista de dicts o objetos)
+    # El template usa h.fecha_modificacion. 
+    # El codigo viejo parseaba fecha from string JSON. Model devuelve datetime object.
+    
+    historial = []
+    for h in historial_qs:
+        historial.append({
+            'id': h.id,
+            'receta': h.receta,
+            'usuario': h.usuario,
+            'fecha_entrega': h.fecha_entrega,
+            'fecha_modificacion': h.fecha_modificacion,
+            'cambio_realizado': h.cambio_realizado
+        })
 
     current_user_id = request.session.get('user_id')
     is_profesor = False
-    try:
-        me = next((u for u in usuarios if u.get('id') == current_user_id), None)
-        nombre_rol = (me.get('nombre_rol') or '').lower() if me else ''
-        if nombre_rol and ('profesor' in nombre_rol or 'teacher' in nombre_rol or 'admin' in nombre_rol or 'administrador' in nombre_rol):
-            is_profesor = True
-    except Exception:
-        is_profesor = False
-
     
+    try:
+        me = Usuario.objects.select_related('rol').get(id=current_user_id)
+        if me.rol:
+            nombre_rol = me.rol.nombre.lower()
+            if any(x in nombre_rol for x in ['profesor', 'teacher', 'admin', 'administrador']):
+                is_profesor = True
+    except Usuario.DoesNotExist:
+        is_profesor = False
+    
+    # Alumnos list
     alumnos = []
     for u in usuarios:
-        rol = (u.get('nombre_rol') or '').lower()
-        if 'alumno' in rol or 'estudiante' in rol or u.get('rol') == 2:
-            alumnos.append(u)
+        rol_name = u.rol.nombre.lower() if u.rol else ''
+        if 'alumno' in rol_name or 'estudiante' in rol_name:
+             # Convertir a dict o pasar objeto, el template usa u.id, u.nombre_rol?
+             # El anterior codigo usaba u.get('nombre_rol')
+             # Si pasamos objeto Usuario, en template {{ u.rol.nombre }} funciona si template fue adaptado o si usamos un wrapper.
+             # Pero el template original seguramente usa {{ u.username }} q no existe en Usuario, sino en Usuario.user.username
+             # ASI QUE CREAREMOS DICTS para compatibilidad máxima
+             
+             alumnos.append({
+                 'id': u.id,
+                 'username': u.user.username if u.user else 'Sin usuario',
+                 'nombre_rol': u.rol.nombre if u.rol else 'Sin rol'
+             })
 
     return render(
         request,
@@ -68,7 +74,7 @@ def ver_historial(request):
             "historial": historial,
             "alumnos": alumnos,
             "is_profesor": is_profesor,
-            "selected_usuario_id": usuario_id
+            "selected_usuario_id": usuario_id_filter
         }
     )
 

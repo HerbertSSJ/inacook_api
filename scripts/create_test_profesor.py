@@ -2,7 +2,10 @@
 import os
 import sys
 import django
+from dotenv import load_dotenv
 
+# Cargar variables del .env
+load_dotenv()
 # Setup Django Environment
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'inacook_api.settings')

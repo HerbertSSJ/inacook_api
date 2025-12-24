@@ -1,83 +1,68 @@
-import requests
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-
-API_RECETAS = "http://127.0.0.1:8000/api/recetas/"
-API_COMPROBANTES = "http://127.0.0.1:8000/api/comprobantes/"
-API_RECETA_INGREDIENTE = "http://127.0.0.1:8000/api/receta-ingrediente/"
-API_INGREDIENTES = "http://127.0.0.1:8000/api/ingredientes/"
-API_UNIDADES = "http://127.0.0.1:8000/api/unidades/"
+from inacook.models import Receta, Comprobante, Receta_Ingrediente
 
 def ver_comprobante(request, id):
-    
-    headers = {}
-    token = request.session.get('token')
-    if token:
-        headers['Authorization'] = f'Token {token}'
+    if not request.session.get('token'):
+        return redirect('login')
 
-    resp_r = requests.get(f"{API_RECETAS}{id}/", headers=headers)
-    if resp_r.status_code != 200:
+    try:
+        receta = Receta.objects.get(id=id)
+    except Receta.DoesNotExist:
         messages.error(request, "Receta no encontrada")
         return redirect('ver_recetas')
-    receta = resp_r.json()
-    
-    resp_c = requests.get(API_COMPROBANTES, headers=headers)
-    comprobantes = resp_c.json() if resp_c.status_code == 200 else []
-    
-    comprobante = next((c for c in comprobantes if c.get('receta') == id), None)
-    
-    resp_rel = requests.get(API_RECETA_INGREDIENTE, headers=headers)
-    all_rels = resp_rel.json() if resp_rel.status_code == 200 else []
-    rels = [rel for rel in all_rels if rel['receta'] == id]
-    
-    resp_ing = requests.get(API_INGREDIENTES, headers=headers)
-    ing_map = {i['id']: i for i in resp_ing.json()} if resp_ing.status_code == 200 else {}
-    
-    resp_uni = requests.get(API_UNIDADES, headers=headers)
-    uni_map = {u['id']: u['abreviatura'] for u in resp_uni.json()} if resp_uni.status_code == 200 else {}
+        
+    # Comprobante
+    try:
+        comprobante = Comprobante.objects.get(receta=receta)
+    except Comprobante.DoesNotExist:
+        comprobante = None
+        
+    # Ingredientes de la receta
+    rels = Receta_Ingrediente.objects.filter(receta=receta).select_related('ingrediente__unidad_medicion')
     
     subtotal_sum = 0
     ingredientes_list = []
     
     for rel in rels:
-        ing = ing_map.get(rel['ingrediente'])
-        if ing:
-            unidad_nombre = uni_map.get(ing.get('unidad_medicion'), '?')
-            costo = ing['costo_unitario']
-            cantidad = rel['cantidad']
-            sub = costo * cantidad
-            subtotal_sum += sub
-            
-            peso_total = None
-            if isinstance(rel, dict):
-                peso_total = rel.get('peso_total')
-                if not peso_total:
-                    peso_val = rel.get('peso')
-                    try:
-                        if peso_val is not None:
-                            peso_total = float(peso_val) * float(cantidad)
-                    except Exception:
-                        peso_total = None
+        ing = rel.ingrediente
+        unidad_nombre = ing.unidad_medicion.abreviatura if ing.unidad_medicion else '?'
+        costo = ing.costo_unitario
+        cantidad = rel.cantidad
+        sub = costo * cantidad
+        subtotal_sum += sub
+        
+        peso_total = rel.peso_total
+        if not peso_total:
+             # Fallback cálculo si no guardado
+             val_peso = rel.peso
+             if val_peso:
+                 peso_total = float(val_peso) * float(cantidad)
 
-            ingredientes_list.append({
-                'nombre': ing['nombre'],
-                'cantidad': cantidad,
-                'peso': rel.get('peso'),
-                'peso_total': peso_total,
-                'unidad': unidad_nombre,
-                'precio': costo,
-                'subtotal': sub
-            })
+        ingredientes_list.append({
+            'nombre': ing.nombre,
+            'cantidad': cantidad,
+            'peso': rel.peso,
+            'peso_total': peso_total,
+            'unidad': unidad_nombre,
+            'precio': costo,
+            'subtotal': sub
+        })
             
     if comprobante:
-        iva_rate = comprobante['iva']
-        factor = comprobante['factor_multiplicacion']
+        iva_rate = comprobante.iva
+        factor = comprobante.factor_multiplicacion
     else:
         iva_rate = 19
         factor = 1
         
     iva_monto = subtotal_sum * (iva_rate / 100)
     total_final = (subtotal_sum + iva_monto) * factor
+    
+    # Template expects attributes access. Pass objects or dicts.
+    # Receta is object. Comprobante is object.
+    # Ingredientes_list is list of dicts. Template iterates list and uses .key.
+    # Dict keys access via . in Django templates works fine.
     
     return render(request, "comprobante_receta.html", {
         "receta": receta,
@@ -86,6 +71,6 @@ def ver_comprobante(request, id):
         "subtotal": subtotal_sum,
         "iva_monto": iva_monto,
         "total_final": total_final,
-        "seccion": receta.get('seccion') or receta.get('Seccion') or '',
-        "asignatura": receta.get('asignatura') or receta.get('Asignatura') or ''
+        "seccion": receta.seccion or '',
+        "asignatura": receta.asignatura or ''
     })

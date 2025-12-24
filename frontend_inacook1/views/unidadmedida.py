@@ -1,17 +1,13 @@
-import requests
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-
-API_UNIDADES = "http://127.0.0.1:8000/api/unidades/"
+from inacook.models import UnidadMedicion
 
 def ver_unidades(request):
-    response = requests.get(API_UNIDADES)
-
-    if response.status_code == 200:
-        unidades = response.json()
-    else:
+    try:
+        unidades = UnidadMedicion.objects.all()
+    except Exception as e:
         unidades = []
-        messages.error(request, "No se pudieron cargar las unidades de medida")
+        messages.error(request, f"No se pudieron cargar las unidades de medida: {e}")
 
     return render(
         request,
@@ -20,27 +16,20 @@ def ver_unidades(request):
     )
 
 def editar_unidad(request, id):
-    response = requests.get(f"{API_UNIDADES}{id}/")
-
-    if response.status_code != 200:
-        messages.error(request, "Unidad no encontrada")
-        return redirect("ver_unidades")
-
-    unidad = response.json()
+    unidad = get_object_or_404(UnidadMedicion, id=id)
 
     if request.method == "POST":
-        data = {
-            "nombre": request.POST.get("nombre"),
-            "abreviatura": request.POST.get("abreviatura"),
-        }
-
-        update = requests.put(f"{API_UNIDADES}{id}/", json=data)
-
-        if update.status_code == 200:
+        nombre = request.POST.get("nombre")
+        abreviatura = request.POST.get("abreviatura")
+        
+        try:
+            unidad.nombre = nombre
+            unidad.abreviatura = abreviatura
+            unidad.save()
             messages.success(request, "Unidad actualizada correctamente")
             return redirect("ver_unidades")
-        else:
-            messages.error(request, "Error al actualizar la unidad")
+        except Exception as e:
+             messages.error(request, f"Error al actualizar la unidad: {e}")
 
     return render(
         request,

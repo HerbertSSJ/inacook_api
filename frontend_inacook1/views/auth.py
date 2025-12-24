@@ -1,107 +1,104 @@
-import requests
 from django.shortcuts import render, redirect
 from django.contrib import messages
-
-from inacook.models import Rol
-
-API_LOGIN = "http://127.0.0.1:8000/api/token-auth/"
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import User
+from rest_framework.authtoken.models import Token
+from inacook.models import Usuario, Rol
 
 def login_view(request):
     if request.method == "POST":
-        data = {
-            "username": request.POST.get("nombre"),
-            "password": request.POST.get("contraseña"),
-        }
-
-        response = requests.post(API_LOGIN, data=data)
-
-        if response.status_code == 200:
-            token = response.json().get("token")
-
-            request.session["token"] = token
-            request.session["username"] = data["username"]
+        username = request.POST.get("nombre")
+        password = request.POST.get("contraseña")
+        
+        user = authenticate(request, username=username, password=password)
+        
+        if user is not None:
+            # Login django standard
+            login(request, user)
             
+            # Obtener el perfil Usuario
             try:
-                resp_users = requests.get(API_REGISTER)
-                if resp_users.status_code == 200:
-                    users = resp_users.json()
-                    current_user = next((u for u in users if u['username'] == data['username']), None)
-                    
-                    if current_user:
-                        request.session['user_id'] = current_user['id']
-                        rol_data = current_user.get('rol')
-                        if isinstance(rol_data, dict):
-                             request.session['rol_nombre'] = rol_data.get('nombre')
-                        else:
-                             request.session['rol_nombre'] = "Estudiante"
-                             
-                             if isinstance(rol_data, int):
-                                 r_resp = requests.get(API_ROLES)
-                                 if r_resp.status_code == 200:
-                                     roles_list = r_resp.json()
-                                     r_obj = next((r for r in roles_list if r['id'] == rol_data), None)
-                                     if r_obj:
-                                         request.session['rol_nombre'] = r_obj.get('nombre')
+                usuario_obj = Usuario.objects.get(user=user)
+                rol_nombre = usuario_obj.rol.nombre if usuario_obj.rol else "Estudiante"
+                user_id_perfil = usuario_obj.id
+            except Usuario.DoesNotExist:
+                # Si no existe perfil (raro), crearlo o manejar error
+                rol_est, _ = Rol.objects.get_or_create(nombre="Estudiante")
+                usuario_obj = Usuario.objects.create(user=user, rol=rol_est)
+                rol_nombre = "Estudiante"
+                user_id_perfil = usuario_obj.id
 
-            except Exception as e:
-                print(f"Error fetching user details: {e}")
+            # Generar/Obtener Token para mantener consistencia con session
+            token, _ = Token.objects.get_or_create(user=user)
+            
+            # Guardar en session como se hacía antes
+            request.session["token"] = token.key
+            request.session["username"] = user.username
+            request.session["user_id"] = user_id_perfil # ID del perfil Usuario, no del User auth
+            request.session["rol_nombre"] = rol_nombre
 
             messages.success(request, "Sesión iniciada correctamente")
             return redirect("dashboard")
-
         else:
             messages.error(request, "Usuario o contraseña incorrectos")
 
     return render(request, "login.html")
 
 
-API_REGISTER = "http://127.0.0.1:8000/api/usuarios/"
-API_ROLES = "http://127.0.0.1:8000/api/roles/"
-
 def register_view(request):
-    # Obtener únicamente el rol 'Estudiante' desde la base de datos.
-    rol_obj = Rol.objects.filter(nombre__iexact='estudiante').first()
-    if not rol_obj:
-        rol_obj = Rol.objects.create(nombre='Estudiante')
-
-    roles = [{'id': rol_obj.id, 'nombre': rol_obj.nombre}]
+    try:
+        roles = Rol.objects.all()
+    except Exception:
+        roles = []
 
     if request.method == "POST":
+        username = request.POST.get("nombre")
+        password = request.POST.get("contraseña")
+        email = request.POST.get("correo")
+        rol_id = request.POST.get("rol")
 
-        selected_rol = request.POST.get("rol")
-        rol_id = None
-        if selected_rol:
+        # Validación básica de existencia
+        if User.objects.filter(username=username).exists():
+            messages.error(request, "El nombre de usuario ya existe")
+            return render(request, "register.html", {"roles": roles})
+
+        # Determinar Rol
+        rol_obj = None
+        if rol_id:
             try:
-                rol_id = int(selected_rol)
-            except Exception:
-                rol_id = None
-
+                rol_obj = Rol.objects.get(id=int(rol_id))
+            except (ValueError, Rol.DoesNotExist):
+                rol_obj = None
         
-        if rol_id is None:
-            for r in roles:
-                if r.get("nombre") and r.get("nombre").lower() == "estudiante":
-                    rol_id = r.get("id")
-                    break
+        if not rol_obj:
+            # Default a Estudiante
+            rol_obj, _ = Rol.objects.get_or_create(nombre="Estudiante")
 
-        data = {
-            "username": request.POST.get("nombre"),
-            "password": request.POST.get("contraseña"),
-            "email": request.POST.get("correo"),
-            "rol": rol_id
-        }
+        try:
+            # Crear User
+            user = User.objects.create_user(username=username, email=email, password=password)
+            
+            # Asignar permisos staff/superuser si es Profesor o Admin
+            r_lower = rol_obj.nombre.lower()
+            if r_lower in ["profesor", "admin", "administrador", "teacher"]:
+                user.is_staff = True
+                if r_lower in ["admin", "administrador"]:
+                    user.is_superuser = True
+                user.save()
 
-        response = requests.post(API_REGISTER, json=data)
+            # Crear Perfil Usuario
+            Usuario.objects.create(user=user, rol=rol_obj)
 
-        if response.status_code in [200, 201]:
             messages.success(request, "Usuario creado correctamente")
             return redirect("login")
-        else:
-            messages.error(request, "Error al crear usuario")
+        except Exception as e:
+            messages.error(request, f"Error al crear usuario: {e}")
 
     return render(request, "register.html", {"roles": roles})
 
 
 def logout_view(request):
+    logout(request)
     request.session.flush()
     messages.success(request, "Sesión cerrada")
     return redirect("login")

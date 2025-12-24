@@ -1,42 +1,31 @@
-import requests
-from .. forms import IngredienteForm
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-
-API_INGREDIENTES = "http://127.0.0.1:8000/api/ingredientes/"
-API_UNIDADES = "http://127.0.0.1:8000/api/unidades/"
-
+from .. forms import IngredienteForm
+from inacook.models import Ingrediente, UnidadMedicion
 
 def crear_ingrediente(request):
-    resp_u = requests.get(API_UNIDADES)
-    unidades_data = resp_u.json() if resp_u.status_code == 200 else []
-    
-    choices = [(u['id'], f"{u['nombre']} ({u['abreviatura']})") for u in unidades_data]
+    unidades_data = UnidadMedicion.objects.all()
+    # Preparar choices para el form
+    choices = [(u.id, f"{u.nombre} ({u.abreviatura})") for u in unidades_data]
 
     if request.method == "POST":
         form = IngredienteForm(request.POST, unidades_choices=choices)
         
         if form.is_valid():
-            data = {
-                "nombre": form.cleaned_data['Nombre_Ingrediente'],
-                "calidad": form.cleaned_data['Calidad'],
-                "costo_unitario": form.cleaned_data['Costo_Unitario'],
-                "peso": form.cleaned_data.get('Peso') or 0.0,
-                "unidad_medicion": form.cleaned_data['UnidadMedicion']
-            }
-        
-            headers = {}
-            token = request.session.get('token')
-            if token:
-                headers['Authorization'] = f'Token {token}'
-
-            resp = requests.post(API_INGREDIENTES, json=data, headers=headers)
-            
-            if resp.status_code == 201:
+            try:
+                unidad_obj = UnidadMedicion.objects.get(id=int(form.cleaned_data['UnidadMedicion']))
+                
+                Ingrediente.objects.create(
+                    nombre=form.cleaned_data['Nombre_Ingrediente'],
+                    calidad=form.cleaned_data['Calidad'],
+                    costo_unitario=form.cleaned_data['Costo_Unitario'],
+                    peso=form.cleaned_data.get('Peso') or 0.0,
+                    unidad_medicion=unidad_obj
+                )
                 messages.success(request, "Ingrediente creado correctamente")
                 return redirect('ver_ingredientes')
-            else:
-                messages.error(request, "Error al crear ingrediente en API")
+            except Exception as e:
+                messages.error(request, f"Error al crear ingrediente: {e}")
     else:
         form = IngredienteForm(unidades_choices=choices)
 
@@ -44,29 +33,38 @@ def crear_ingrediente(request):
 
 
 def ver_ingredientes(request):
+    ingredientes_qs = Ingrediente.objects.select_related('unidad_medicion', 'usuario__user').all()
     
-    headers = {}
-    token = request.session.get('token')
-    if token:
-        headers['Authorization'] = f'Token {token}'
-
-    response = requests.get(API_INGREDIENTES, headers=headers)
-    ingredientes = response.json() if response.status_code == 200 else []
-
-    resp_u = requests.get(API_UNIDADES)
-    unidades = resp_u.json() if resp_u.status_code == 200 else []
-    
-    unit_map = {u['id']: u for u in unidades}
-    
-    for ing in ingredientes:
-        u_id = ing.get('unidad_medicion')
-        if u_id and u_id in unit_map:
-            u_obj = unit_map[u_id]
-            ing['unidad_nombre'] = u_obj.get('nombre', 'Unknown')
-            ing['unidad_abreviatura'] = u_obj.get('abreviatura', '')
-        else:
-            ing['unidad_nombre'] = "Sin unidad"
-            ing['unidad_abreviatura'] = ""
+    ingredientes = []
+    for ing in ingredientes_qs:
+        # Lógica segura para unidad de medición
+        u_id = None
+        u_nombre = "Sin unidad"
+        u_abreviatura = ""
+        
+        if ing.unidad_medicion:
+            u_id = ing.unidad_medicion.id
+            u_nombre = ing.unidad_medicion.nombre
+            u_abreviatura = ing.unidad_medicion.abreviatura
+            
+        # Lógica segura para usuario
+        usuario_str = "Desconocido"
+        if ing.usuario and ing.usuario.user:
+            usuario_str = ing.usuario.user.username
+            
+        ingredientes.append({
+            'id': ing.id,
+            'nombre': ing.nombre,
+            'calidad': ing.calidad,
+            'costo_unitario': ing.costo_unitario,
+            'peso': ing.peso,
+            'unidad_medicion': u_id,
+            'unidad_nombre': u_nombre,
+            'unidad_abreviatura': u_abreviatura,
+            'usuario': usuario_str,
+            'creador': usuario_str,
+            'historial': []
+        })
 
     return render(
         request,
@@ -76,64 +74,64 @@ def ver_ingredientes(request):
 
 
 def eliminar_ingrediente(request, id):
-    headers = {}
-    token = request.session.get('token')
-    if token:
-        headers['Authorization'] = f'Token {token}'
-
-    requests.delete(f"{API_INGREDIENTES}{id}/", headers=headers)
-    messages.success(request, "Ingrediente eliminado")
+    try:
+        if not request.session.get('token'):
+            return redirect('login')
+            
+        ing = get_object_or_404(Ingrediente, id=id)
+        ing.delete()
+        messages.success(request, "Ingrediente eliminado")
+    except Exception as e:
+        messages.error(request, f"Error al eliminar: {e}")
+        
     return redirect('ver_ingredientes')
 
 
 def editar_ingrediente(request, id):
-    resp_i = requests.get(f"{API_INGREDIENTES}{id}/")
-    if resp_i.status_code != 200:
-        messages.error(request, "Ingrediente no encontrado")
-        return redirect('ver_ingredientes')
-    
-    ingrediente = resp_i.json()
-    
-    resp_u = requests.get(API_UNIDADES)
-    unidades_data = resp_u.json() if resp_u.status_code == 200 else []
-    choices = [(u['id'], f"{u['nombre']} ({u['abreviatura']})") for u in unidades_data]
+    ingrediente = get_object_or_404(Ingrediente, id=id)
+    unidades_data = UnidadMedicion.objects.all()
+    choices = [(u.id, f"{u.nombre} ({u.abreviatura})") for u in unidades_data]
 
+    # Datos iniciales para el form
     initial_data = {
-        'Nombre_Ingrediente': ingrediente.get('Nombre_Ingrediente', ingrediente.get('nombre')),
-        'Calidad': ingrediente.get('Calidad', ingrediente.get('calidad')),
-        'Costo_Unitario': ingrediente.get('Costo_Unitario', ingrediente.get('costo_unitario')),
-        'Peso': ingrediente.get('peso', ingrediente.get('Peso', 0.0)),
-        'UnidadMedicion': ingrediente.get('UnidadMedicion')
+        'Nombre_Ingrediente': ingrediente.nombre,
+        'Calidad': ingrediente.calidad,
+        'Costo_Unitario': ingrediente.costo_unitario,
+        'Peso': ingrediente.peso,
+        'UnidadMedicion': ingrediente.unidad_medicion.id if ingrediente.unidad_medicion else None
     }
-    if isinstance(initial_data['UnidadMedicion'], dict):
-        initial_data['UnidadMedicion'] = initial_data['UnidadMedicion'].get('id')
 
     if request.method == "POST":
         form = IngredienteForm(request.POST, unidades_choices=choices)
         if form.is_valid():
-            data = {
-                "nombre": form.cleaned_data['Nombre_Ingrediente'],
-                "calidad": form.cleaned_data['Calidad'],
-                "costo_unitario": form.cleaned_data['Costo_Unitario'],
-                    "peso": form.cleaned_data.get('Peso') or 0.0,
-                    "unidad_medicion": form.cleaned_data['UnidadMedicion']
-            }
-            headers = {}
-            token = request.session.get('token')
-            if token:
-                headers['Authorization'] = f'Token {token}'
-
-            resp = requests.put(f"{API_INGREDIENTES}{id}/", json=data, headers=headers)
-            
-            if resp.status_code == 200:
+            try:
+                unidad_obj = UnidadMedicion.objects.get(id=int(form.cleaned_data['UnidadMedicion']))
+                
+                ingrediente.nombre = form.cleaned_data['Nombre_Ingrediente']
+                ingrediente.calidad = form.cleaned_data['Calidad']
+                ingrediente.costo_unitario = form.cleaned_data['Costo_Unitario']
+                ingrediente.peso = form.cleaned_data.get('Peso') or 0.0
+                ingrediente.unidad_medicion = unidad_obj
+                ingrediente.save()
+                
                 messages.success(request, "Ingrediente actualizado")
                 return redirect('ver_ingredientes')
-            else:
-                messages.error(request, "Error al actualizar ingrediente")
+            except Exception as e:
+                messages.error(request, f"Error al actualizar ingrediente: {e}")
     else:
         form = IngredienteForm(unidades_choices=choices, initial=initial_data)
 
+    # Convertir a dict para que el template acceda a las keys como antes si fuera necesario
+    ing_dict = {
+        'id': ingrediente.id,
+        'nombre': ingrediente.nombre,
+        'calidad': ingrediente.calidad,
+        'costo_unitario': ingrediente.costo_unitario,
+        'peso': ingrediente.peso,
+        'unidad_medicion': ingrediente.unidad_medicion.id if ingrediente.unidad_medicion else None
+    }
+
     return render(request, "editar_ingrediente.html", {
         "form": form,
-        "ingrediente": ingrediente
+        "ingrediente": ing_dict
     })
